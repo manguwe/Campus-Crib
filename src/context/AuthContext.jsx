@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { setActivityIdentity } from '../lib/activityIdentity'
+import { logActivity } from '../lib/activityLog'
 
 const AuthContext = createContext(undefined)
 
@@ -15,11 +17,12 @@ export function AuthProvider({ children }) {
   const loadProfile = useCallback(async (userId) => {
     if (!userId) {
       setProfile(null)
+      setActivityIdentity({ userId: null, role: null })
       return
     }
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, role, phone, created_at')
+      .select('id, name, role, phone, is_suspended, suspension_reason, suspended_until, created_at')
       .eq('id', userId)
       .single()
 
@@ -28,8 +31,10 @@ export function AuthProvider({ children }) {
       // yet on a brand-new signup. The caller can retry via refreshProfile().
       console.error('[AuthContext] could not load profile:', error.message)
       setProfile(null)
+      setActivityIdentity({ userId, role: null })
     } else {
       setProfile(data)
+      setActivityIdentity({ userId, role: data.role })
     }
   }, [])
 
@@ -65,25 +70,44 @@ export function AuthProvider({ children }) {
     }
   }, [loadProfile])
 
-  const signUp = useCallback(async ({ email, password, name, role, phone }) => {
+  const signUp = useCallback(async ({ email, password, name, role, phone, termsAcceptedAt }) => {
     // Everything in `data` here lands in auth.users.raw_user_meta_data,
     // which the handle_new_user Postgres trigger reads to create the
     // matching profiles (and, for landlords, landlord_profiles) row
-    // server-side. See 01_schema.sql / 04_auth_trigger_update.sql.
-    return supabase.auth.signUp({
+    // server-side. See 01_schema.sql / 04_auth_trigger_update.sql /
+    // 16_terms_accepted_at.sql (terms_accepted_at).
+    const result = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name, role, phone } },
+      options: { data: { name, role, phone, terms_accepted_at: termsAcceptedAt } },
     })
+    // role is already known from the caller here, so there's no need to
+    // wait on the profile row (which the trigger above creates
+    // separately) just to log this.
+    if (!result.error) logActivity('signup', { details: { role } })
+    return result
   }, [])
 
   const signIn = useCallback(async ({ email, password }) => {
-    return supabase.auth.signInWithPassword({ email, password })
+    const result = await supabase.auth.signInWithPassword({ email, password })
+    let role = null
+    if (!result.error && result.data?.user) {
+      // Awaited here (unlike the fire-and-forget log insert itself)
+      // because the caller (Login.jsx) needs the role synchronously to
+      // redirect to the right dashboard - this is a single indexed
+      // lookup on a small table, not a meaningful delay.
+      const { data } = await supabase.from('profiles').select('role').eq('id', result.data.user.id).single()
+      role = data?.role ?? null
+      logActivity('login', { details: { role } })
+    }
+    return { ...result, role }
   }, [])
 
   const signOut = useCallback(async () => {
+    // Capture role before signing out - profile is cleared right after.
+    logActivity('logout', { details: { role: profile?.role ?? null } })
     await supabase.auth.signOut()
-  }, [])
+  }, [profile])
 
   const refreshProfile = useCallback(() => {
     return loadProfile(session?.user?.id)

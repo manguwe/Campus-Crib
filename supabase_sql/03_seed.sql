@@ -143,15 +143,17 @@ values
 
 -- ---------------------------------------------------------------------
 -- Property media — a couple of placeholder images per listing.
--- (Swap these for real Supabase Storage URLs once photo upload is built;
--- picsum.photos gives us stable, free placeholder images for now.)
+-- (Swap these for real Supabase Storage URLs once photo upload is built.
+-- placehold.co gives a neutral, clearly-a-placeholder image instead of
+-- picsum.photos' random stock photos, which could show anything from a
+-- beach to a phone on a desk - not great for a housing listing.)
 -- ---------------------------------------------------------------------
 insert into public.property_media (property_id, media_type, url, sort_order)
-select p.id, 'image', 'https://picsum.photos/seed/' || substr(p.id::text, 1, 8) || '-a/800/600', 0
+select p.id, 'image', 'https://placehold.co/800x600/E2E8F0/1E293B?text=Photo+coming+soon', 0
 from public.properties p;
 
 insert into public.property_media (property_id, media_type, url, sort_order)
-select p.id, 'image', 'https://picsum.photos/seed/' || substr(p.id::text, 1, 8) || '-b/800/600', 1
+select p.id, 'image', 'https://placehold.co/800x600/E2E8F0/1E293B?text=Photo+coming+soon', 1
 from public.properties p;
 
 -- ---------------------------------------------------------------------

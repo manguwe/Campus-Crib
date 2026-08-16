@@ -26,6 +26,22 @@ export async function uploadIdDocument(file, userId) {
   return path
 }
 
+/**
+ * Same bucket/path/signed-URL pattern as uploadIdDocument, parameterized
+ * by document type so callers don't need three near-identical functions.
+ * `docType` is just a folder-naming hint (e.g. 'front', 'back', 'proof')
+ * to keep a landlord's documents distinguishable in storage - it isn't
+ * validated against anything.
+ */
+export async function uploadLandlordDocument(file, userId, docType) {
+  const path = `${userId}/${docType}-${uniqueFilename(file)}`
+  const { error } = await supabase.storage
+    .from('landlord-documents')
+    .upload(path, file, { upsert: false, cacheControl: '3600' })
+  if (error) throw error
+  return path
+}
+
 /** Creates a short-lived signed URL to view a private ID document. */
 export async function getIdDocumentSignedUrl(path, expiresInSeconds = 300) {
   const { data, error } = await supabase.storage

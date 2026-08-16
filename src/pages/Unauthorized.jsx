@@ -9,13 +9,13 @@ export default function Unauthorized() {
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 p-6 text-center">
-      <h2 className="text-lg font-semibold text-gray-900">Not authorised</h2>
+      <h2 className="text-lg font-semibold text-primary">Not authorised</h2>
       <p className="text-sm text-gray-500 mt-2">
         Your account ({profile?.role || 'unknown role'}) doesn't have access to that page.
       </p>
       <Link
         to={dashboardPath}
-        className="inline-block mt-4 text-sm font-medium text-gray-900 underline"
+        className="inline-block mt-4 text-sm font-medium text-accent underline"
       >
         Go to your dashboard
       </Link>

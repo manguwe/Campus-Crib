@@ -5,3 +5,38 @@
 html, body, #root {
   height: 100%;
 }
+
+html {
+  /* Reinforces the <meta name="color-scheme"> tag in index.html - some
+     browsers' forced-dark-mode heuristics look at this CSS property too,
+     not just the meta tag. */
+  color-scheme: light;
+}
+
+html, body {
+  background-color: #EEF2F8;
+  color: #1E293B;
+}
+
+body {
+  @apply bg-background text-ink;
+}
+
+/* Subtle, short entrance animation for cards/sections as they mount -
+   see PropertyCard, Browse's results grid, and Home's sections. Kept
+   short (300ms) and a small travel distance so it reads as "polished",
+   not as something the user has to wait through. */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 300ms ease-out both;
+}

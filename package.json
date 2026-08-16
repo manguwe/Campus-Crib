@@ -1,5 +1,5 @@
 {
-  "name": "student-boarding-house-finder",
+  "name": "campus-crib",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
+    "lucide-react": "^0.408.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.25.1"

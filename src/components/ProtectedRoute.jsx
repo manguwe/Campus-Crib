@@ -1,5 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { dashboardPathForRole } from '../lib/roleRoutes'
+import PageLoading from './ui/PageLoading'
 
 /**
  * Wrap any route element that requires a logged-in user, optionally
@@ -15,8 +17,8 @@ export default function ProtectedRoute({ allowedRoles, children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Loading…
+      <div className="min-h-screen flex items-center justify-center">
+        <PageLoading label="Loading…" />
       </div>
     )
   }
@@ -27,12 +29,20 @@ export default function ProtectedRoute({ allowedRoles, children }) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
+  if (profile?.is_suspended) {
+    // Blocks meaningful use of the app while suspended - explains why on
+    // its own page rather than silently failing or letting them through.
+    return <Navigate to="/suspended" replace />
+  }
+
   if (allowedRoles && (!profile || !allowedRoles.includes(profile.role))) {
     // Logged in, but the wrong role for this route (e.g. a student trying
-    // to reach /landlord). Send to a dedicated "not allowed" page rather
-    // than silently redirecting to their own dashboard, so it's obvious
-    // what happened instead of looking like a broken link.
-    return <Navigate to="/unauthorized" replace />
+    // to reach /landlord). Send them straight to their own dashboard
+    // instead of an interstitial "not allowed" page - no extra click
+    // required. dashboardPathForRole returns null for a missing/unknown
+    // role (e.g. profile hasn't loaded a role yet), so fall back to
+    // /unauthorized in that edge case rather than redirecting to null.
+    return <Navigate to={dashboardPathForRole(profile?.role) || '/unauthorized'} replace />
   }
 
   return children
