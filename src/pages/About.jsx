@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Github, Globe, Mail, ShieldCheck, Camera, MessageCircle, Eye, Users, Zap } from 'lucide-react'
 import { useCampuses } from '../context/CampusesContext'
 import anotidaPhoto from '../assets/team-anotida-manguwe.jpg'
+import miltonPhoto from '../assets/team-milton-mumanyi.jpg'
 import taroPhoto from '../assets/team-taropafadzwanashe-kadurira.jpg'
 
 const TEAM = [
@@ -28,7 +29,7 @@ const TEAM = [
     name: 'Mumanyi.milton',
     role: 'Marketing',
     bio: 'The contribution of Cretive marketing solutions.',
-    photo: miltonphoto,
+    photo: miltonPhoto,
     github: '',
     portfolio: '',
     email: 'murdabeatzdlil42@gmail.com',
