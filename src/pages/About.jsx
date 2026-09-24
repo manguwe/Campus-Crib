@@ -26,9 +26,9 @@ const TEAM = [
     email: 'taropafadzwanashekadurira@gmail.com',
   },
   {
-    name: 'Mumanyi.milton',
+    name: 'Mumanyi milton',
     role: 'Marketing',
-    bio: 'The contribution of Cretive marketing solutions.',
+    bio: 'The contribution of Creative marketing solutions.',
     photo: miltonPhoto,
     github: '',
     portfolio: '',
