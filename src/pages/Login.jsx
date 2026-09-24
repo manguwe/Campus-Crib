@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { formatSupabaseError } from '../lib/errorMessages'
 import { dashboardPathForRole } from '../lib/roleRoutes'
 import ErrorBanner from '../components/ui/ErrorBanner'
+import PasswordInput from '../components/PasswordInput'
 
 export default function Login() {
   const { signIn } = useAuth()
@@ -67,12 +68,12 @@ export default function Login() {
               Forgot password?
             </Link>
           </div>
-          <input
-            type="password"
-            required
+          <PasswordInput
+            id="login-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            autoComplete="current-password"
+            placeholder="Enter your password"
           />
         </div>
 
