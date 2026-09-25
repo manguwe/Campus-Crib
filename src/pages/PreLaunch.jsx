@@ -135,17 +135,16 @@ export default function PreLaunch() {
       `Suggestions / feature requests:\n${suggestion.trim()}`,
     ]
 
-    const { data, error: insertError } = await supabase.from('feedback').insert({
-      submitted_by: user?.id || null,
-      name: name.trim() || null,
-      email: email.trim() || null,
-      message: messageParts.join('\n\n'),
-      user_type: role,
-      rating,
-      suggestion: suggestion.trim(),
-      feature_requests: suggestion.trim(),
-      source: 'pre_launch_research',
-    }).select('id').single()
+    const { data: feedbackId, error: insertError } = await supabase.rpc('submit_feedback_public', {
+      p_name: name.trim() || null,
+      p_email: email.trim() || null,
+      p_message: messageParts.join('\n\n'),
+      p_user_type: role,
+      p_rating: rating,
+      p_suggestion: suggestion.trim(),
+      p_feature_requests: suggestion.trim(),
+      p_source: 'pre_launch_research',
+    })
 
     if (insertError) {
       setSubmitting(false)
@@ -153,7 +152,7 @@ export default function PreLaunch() {
       return
     }
 
-    await recordReferralEvent('feedback_submitted', { source: 'pre_launch_research', feedback_id: data?.id, user_type: role }, user?.id || null)
+    await recordReferralEvent('feedback_submitted', { source: 'pre_launch_research', feedback_id: feedbackId, user_type: role }, user?.id || null)
     setSubmitting(false)
     setSubmitted(true)
   }

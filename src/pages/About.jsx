@@ -16,7 +16,7 @@ const TEAM = [
     portfolio: 'https://timtiml-website.vercel.app',
     email: 'timtimlinn@gmail.com',
   },
-   {
+  {
     name: 'Taropafadzwanashe Kadurira',
     role: 'Brand Designer',
     bio: 'Creative web designer and developer behind Global Web Co, focused on building clean digital experiences, branding, and user-friendly web interfaces. Contributed to Campus Crib through its branding, logo, and web pages.',

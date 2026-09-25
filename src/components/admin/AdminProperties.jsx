@@ -20,7 +20,7 @@ export default function AdminProperties() {
 
     const { data: props, error: propsError } = await supabase
       .from('properties')
-      .select('id, title, price, currency, status, landlord_id, created_at')
+      .select('id, title, price, currency, status, landlord_id, agent_fee_amount, agent_fee_currency, created_at')
       .order('created_at', { ascending: false })
 
     if (propsError) {
@@ -71,6 +71,22 @@ export default function AdminProperties() {
     setProperties((prev) => prev.map((p) => (p.id === propertyId ? { ...p, status: decision } : p)))
   }
 
+  async function handleFeeSave(propertyId, amount, currency) {
+    const value = Number(amount)
+    if (!Number.isFinite(value) || value < 0) {
+      setError('Agent fee must be zero or greater.')
+      return
+    }
+    setBusyId(propertyId)
+    const { error: feeError } = await supabase.from('properties').update({ agent_fee_amount: value, agent_fee_currency: currency || 'ZMW' }).eq('id', propertyId)
+    setBusyId(null)
+    if (feeError) {
+      setError(formatSupabaseError(feeError, 'Could not save the agent fee.'))
+      return
+    }
+    setProperties((prev) => prev.map((p) => p.id === propertyId ? { ...p, agent_fee_amount: value, agent_fee_currency: currency || 'ZMW' } : p))
+  }
+
   async function handleRemove(propertyId) {
     if (!window.confirm('Remove this listing permanently? This also deletes its photos/media/reviews.')) {
       return
@@ -103,6 +119,7 @@ export default function AdminProperties() {
             <th className="text-left px-4 py-2">Title</th>
             <th className="text-left px-4 py-2">Landlord</th>
             <th className="text-left px-4 py-2">Price</th>
+            <th className="text-left px-4 py-2">Agent fee</th>
             <th className="text-left px-4 py-2">Status</th>
             <th className="text-right px-4 py-2">Actions</th>
           </tr>
@@ -118,6 +135,18 @@ export default function AdminProperties() {
               <td className="px-4 py-3 text-gray-600">{landlordNames[p.landlord_id] || '—'}</td>
               <td className="px-4 py-3 text-gray-600">
                 {p.currency} {Number(p.price).toLocaleString()}
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-1.5">
+                  <input
+                    aria-label={`Agent fee for ${p.title}`}
+                    defaultValue={p.agent_fee_amount ?? 0}
+                    type="number" min="0" step="0.01"
+                    className="w-24 rounded-lg border border-gray-200 px-2 py-1 text-xs"
+                    onBlur={(e) => handleFeeSave(p.id, e.target.value, p.agent_fee_currency || 'ZMW')}
+                  />
+                  <span className="text-xs text-gray-500">{p.agent_fee_currency || 'ZMW'}</span>
+                </div>
               </td>
               <td className="px-4 py-3">
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE_STYLES[p.status]}`}>

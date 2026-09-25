@@ -115,7 +115,7 @@ export default function PropertyEditor() {
       // listing, `data` comes back null rather than leaking the row.
       const { data, error } = await supabase
         .from('properties')
-        .select('*')
+        .select('id, title, description, price, currency, address_text, public_latitude, public_longitude, amenities, building_type, occupancy, toilet_shared_by, walk_minutes_to_campus, primary_campus_id, availability_status, status, rejection_reason')
         .eq('id', id)
         .single()
 
@@ -131,8 +131,8 @@ export default function PropertyEditor() {
         price: data.price ?? '',
         currency: data.currency || 'ZMW',
         address_text: data.address_text || '',
-        latitude: data.latitude ?? '',
-        longitude: data.longitude ?? '',
+        latitude: data.public_latitude ?? '',
+        longitude: data.public_longitude ?? '',
         amenities: data.amenities || [],
         building_type: data.building_type || '',
         occupancy: data.occupancy ?? '',
@@ -144,6 +144,17 @@ export default function PropertyEditor() {
       })
       setStatus(data.status)
       setRejectionReason(data.rejection_reason)
+
+      // Landlords can edit their own exact coordinates through the protected RPC.
+      // The public properties row only contains the rounded/general location.
+      const { data: privateLocation } = await supabase.rpc('get_private_property_access', { p_property_id: id })
+      if (privateLocation?.[0]) {
+        setForm((current) => ({
+          ...current,
+          latitude: privateLocation[0].latitude ?? current.latitude,
+          longitude: privateLocation[0].longitude ?? current.longitude,
+        }))
+      }
       setLoading(false)
     }
 
@@ -285,8 +296,8 @@ export default function PropertyEditor() {
       price: Number(form.price),
       currency: form.currency,
       address_text: form.address_text.trim() || null,
-      latitude: form.latitude === '' ? null : Number(form.latitude),
-      longitude: form.longitude === '' ? null : Number(form.longitude),
+      public_latitude: form.latitude === '' ? null : Number(form.latitude).toFixed(2),
+      public_longitude: form.longitude === '' ? null : Number(form.longitude).toFixed(2),
       amenities: form.amenities,
       building_type: form.building_type || null,
       occupancy: form.occupancy === '' ? null : Number(form.occupancy),
@@ -312,6 +323,19 @@ export default function PropertyEditor() {
         return
       }
 
+      if (form.latitude !== '' && form.longitude !== '') {
+        const { error: locationError } = await supabase.rpc('save_property_private_location', {
+          p_property_id: data.id,
+          p_latitude: Number(form.latitude),
+          p_longitude: Number(form.longitude),
+        })
+        if (locationError) {
+          setSaving(false)
+          setError(formatSupabaseError(locationError, 'Listing saved, but the private location could not be saved.'))
+          return
+        }
+      }
+
       // Move into edit mode for this new property so the media uploader
       // (which needs a real property_id) becomes available immediately.
       logActivity('listing_created', { details: { property_id: data.id } })
@@ -331,6 +355,16 @@ export default function PropertyEditor() {
 
     if (updateError) {
       setError(formatSupabaseError(updateError, 'Could not save changes.'))
+      return
+    }
+
+    const { error: locationError } = await supabase.rpc('save_property_private_location', {
+      p_property_id: id,
+      p_latitude: form.latitude === '' ? null : Number(form.latitude),
+      p_longitude: form.longitude === '' ? null : Number(form.longitude),
+    })
+    if (locationError) {
+      setError(formatSupabaseError(locationError, 'Listing saved, but the private location could not be saved.'))
       return
     }
 

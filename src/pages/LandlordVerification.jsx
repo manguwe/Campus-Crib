@@ -41,7 +41,7 @@ export default function LandlordVerification() {
         )
         .eq('id', user.id)
         .single(),
-      supabase.from('profiles').select('phone').eq('id', user.id).single(),
+      supabase.rpc('get_private_landlord_phone', { p_landlord_id: user.id }),
     ])
 
     if (error) {
@@ -55,7 +55,7 @@ export default function LandlordVerification() {
     // Pre-fill from whatever's already on file - their own previous
     // submission first, falling back to their account phone/email for a
     // first-time submission.
-    const prefillCall = data.contact_phone || profileData?.phone || ''
+    const prefillCall = data.contact_phone || profileData || ''
     setForm({
       idNumber: data.id_number || '',
       callNumber: prefillCall,

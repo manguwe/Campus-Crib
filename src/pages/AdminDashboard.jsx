@@ -15,6 +15,7 @@ import AdminAnnouncements from '../components/admin/AdminAnnouncements'
 import AdminReferrals from '../components/admin/AdminReferrals'
 import AdminPlatformMode from '../components/admin/AdminPlatformMode'
 import AdminLaunchReadiness from '../components/admin/AdminLaunchReadiness'
+import AdminAccessRequests from '../components/admin/AdminAccessRequests'
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -25,6 +26,7 @@ const TABS = [
   { id: 'ai-usage', label: 'AI Usage' },
   { id: 'verifications', label: 'Landlord verifications', countKey: 'verifications' },
   { id: 'properties', label: 'Properties', countKey: 'properties' },
+  { id: 'access', label: 'Access requests', countKey: 'access' },
   { id: 'campuses', label: 'Campuses' },
   { id: 'users', label: 'Users' },
   { id: 'feedback', label: 'Feedback', countKey: 'feedback' },
@@ -33,7 +35,7 @@ const TABS = [
   { id: 'announcements', label: 'Announcements' },
 ]
 
-const EMPTY_COUNTS = { verifications: 0, properties: 0, feedback: 0, contact: 0, reports: 0 }
+const EMPTY_COUNTS = { verifications: 0, properties: 0, feedback: 0, contact: 0, reports: 0, access: 0 }
 
 export default function AdminDashboard() {
   const { profile } = useAuth()
@@ -41,7 +43,7 @@ export default function AdminDashboard() {
   const [counts, setCounts] = useState(EMPTY_COUNTS)
 
   async function loadCounts() {
-    const [verifications, properties, feedback, contact, reports] = await Promise.all([
+    const [verifications, properties, feedback, contact, reports, access] = await Promise.all([
       supabase
         .from('landlord_profiles')
         .select('id', { count: 'exact', head: true })
@@ -50,6 +52,7 @@ export default function AdminDashboard() {
       supabase.from('feedback').select('id', { count: 'exact', head: true }).eq('is_read', false),
       supabase.from('contact_messages').select('id', { count: 'exact', head: true }).eq('is_read', false),
       supabase.from('property_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('property_access_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     ])
 
     setCounts({
@@ -58,6 +61,7 @@ export default function AdminDashboard() {
       feedback: feedback.count ?? 0,
       contact: contact.count ?? 0,
       reports: reports.count ?? 0,
+      access: access.count ?? 0,
     })
   }
 
@@ -113,6 +117,7 @@ export default function AdminDashboard() {
       {tab === 'ai-usage' && <AdminAiUsage />}
       {tab === 'verifications' && <AdminVerifications />}
       {tab === 'properties' && <AdminProperties />}
+      {tab === 'access' && <AdminAccessRequests />}
       {tab === 'campuses' && <AdminCampuses />}
       {tab === 'users' && <AdminUsers />}
       {tab === 'feedback' && <AdminFeedback />}

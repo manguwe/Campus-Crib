@@ -28,7 +28,7 @@ export default function AdminVerifications() {
     const { data, error } = await supabase
       .from('landlord_profiles')
       .select(
-        'id, verification_status, id_document_url, id_number, id_document_front_url, id_document_back_url, proof_of_ownership_url, contact_phone, contact_email, contact_whatsapp, created_at, profiles!landlord_profiles_id_fkey(name, phone)'
+        'id, verification_status, id_document_url, id_number, id_document_front_url, id_document_back_url, proof_of_ownership_url, contact_phone, contact_email, contact_whatsapp, created_at, profiles!landlord_profiles_id_fkey(name)'
       )
       .eq('verification_status', 'pending')
       .order('created_at', { ascending: true })
@@ -97,7 +97,7 @@ export default function AdminVerifications() {
           >
             <div className="min-w-0">
               <p className="font-medium text-gray-900 truncate">{r.profiles?.name}</p>
-              <p className="text-sm text-gray-500">{r.profiles?.phone}</p>
+              
 
               {hasNewDocs ? (
                 <div className="text-xs text-gray-500 mt-2 space-y-0.5">

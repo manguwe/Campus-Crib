@@ -34,11 +34,11 @@ export default function Feedback() {
     }
 
     setSubmitting(true)
-    const { error: insertError } = await supabase.from('feedback').insert({
-      submitted_by: user?.id || null,
-      name: name.trim() || null,
-      email: email.trim() || null,
-      message: message.trim(),
+    const { error: insertError } = await supabase.rpc('submit_feedback_public', {
+      p_name: name.trim() || null,
+      p_email: email.trim() || null,
+      p_message: message.trim(),
+      p_source: 'feedback_page',
     })
     setSubmitting(false)
 

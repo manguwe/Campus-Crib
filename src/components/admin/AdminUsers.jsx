@@ -33,7 +33,7 @@ export default function AdminUsers() {
     setError('')
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, role, phone, is_suspended, suspension_reason, suspended_until, created_at')
+      .select('id, name, role, is_suspended, suspension_reason, suspended_until, created_at')
       .order('created_at', { ascending: false })
 
     if (error) setError(formatSupabaseError(error, 'Could not load users.'))
@@ -118,7 +118,7 @@ export default function AdminUsers() {
                   {u.role}
                 </span>
               </td>
-              <td className="px-4 py-3 text-gray-600">{u.phone || '—'}</td>
+              <td className="px-4 py-3 text-gray-600">{'Private — available through approved contact workflow'}</td>
               <td className="px-4 py-3">
                 {u.is_suspended ? (
                   <div>

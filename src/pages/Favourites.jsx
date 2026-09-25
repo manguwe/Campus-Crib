@@ -30,7 +30,7 @@ export default function Favourites() {
     const { data, error } = await supabase
       .from('favourites')
       .select(
-        'property_id, properties(id, title, price, currency, building_type, occupancy, toilet_shared_by, walk_minutes_to_campus, primary_campus_id, amenities, availability_status, latitude, longitude)'
+        'property_id, properties(id, title, price, currency, building_type, occupancy, toilet_shared_by, walk_minutes_to_campus, primary_campus_id, amenities, availability_status, agent_fee_amount, agent_fee_currency, public_latitude, public_longitude)'
       )
       .eq('student_id', user.id)
 

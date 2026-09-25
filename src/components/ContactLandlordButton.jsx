@@ -37,7 +37,7 @@ export default function ContactLandlordButton({ propertyId, landlordId }) {
             .select('id, contact_type, phone_number, label, sort_order')
             .eq('property_id', propertyId)
             .order('sort_order', { ascending: true }),
-          supabase.from('profiles').select('name, phone').eq('id', landlordId).single(),
+          supabase.from('profiles').select('name').eq('id', landlordId).single(),
         ])
 
       if (contactsError) {
@@ -51,8 +51,9 @@ export default function ContactLandlordButton({ propertyId, landlordId }) {
         return
       }
 
+      const { data: privatePhone } = await supabase.rpc('get_private_landlord_phone', { p_landlord_id: landlordId })
       setContacts(contactRows || [])
-      setLandlord(profileRow)
+      setLandlord({ ...profileRow, phone: privatePhone })
       setLoading(false)
     }
 

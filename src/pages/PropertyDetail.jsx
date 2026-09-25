@@ -9,7 +9,7 @@ import { useFavourites } from '../hooks/useFavourites'
 import { useCampuses } from '../context/CampusesContext'
 import GoogleMapPin from '../components/GoogleMapPin'
 import DirectionsPanel from '../components/DirectionsPanel'
-import ContactLandlordButton from '../components/ContactLandlordButton'
+import PropertyAccessPanel from '../components/PropertyAccessPanel'
 import ReviewsSection from '../components/ReviewsSection'
 import RatingSummary from '../components/RatingSummary'
 import AvailabilityStatusBadge from '../components/AvailabilityStatusBadge'
@@ -36,7 +36,7 @@ export default function PropertyDetail() {
       // RLS returns this row only if it's approved, or the caller owns it
       // / is an admin - a pending listing's id just comes back empty for
       // anyone else, same as a bad id would.
-      const { data, error } = await supabase.from('properties').select('*').eq('id', id).single()
+      const { data, error } = await supabase.from('properties').select('id, landlord_id, title, description, price, currency, address_text, room_type, amenities, status, created_at, updated_at, building_type, occupancy, toilet_shared_by, walk_minutes_to_campus, primary_campus_id, availability_status, rejection_reason, agent_fee_amount, agent_fee_currency, public_latitude, public_longitude').eq('id', id).single()
 
       if (error || !data) {
         setNotFound(true)
@@ -213,7 +213,7 @@ export default function PropertyDetail() {
               {availabilityNote}
             </p>
           )}
-          <ContactLandlordButton propertyId={property.id} landlordId={property.landlord_id} />
+          <PropertyAccessPanel property={property} />
 
           {/* Only a logged-in student, viewing a listing that isn't
               their own, can report it - not guests, not the landlord
@@ -228,10 +228,10 @@ export default function PropertyDetail() {
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
         <h2 className="text-sm font-medium text-primary mb-3">Location</h2>
-        <GoogleMapPin latitude={property.latitude} longitude={property.longitude} title={property.title} />
-        {property.latitude != null && property.longitude != null && (
+        <GoogleMapPin latitude={property.public_latitude} longitude={property.public_longitude} title={property.title} />
+        {property.public_latitude != null && property.public_longitude != null && (
           <DirectionsPanel
-            destination={{ lat: Number(property.latitude), lng: Number(property.longitude) }}
+            destination={{ lat: Number(property.public_latitude), lng: Number(property.public_longitude) }}
           />
         )}
       </div>

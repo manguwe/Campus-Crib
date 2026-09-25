@@ -21,6 +21,7 @@ import Favourites from './pages/Favourites'
 import LandlordDashboard from './pages/LandlordDashboard'
 import LandlordVerification from './pages/LandlordVerification'
 import PropertyEditor from './pages/PropertyEditor'
+import PropertyAccess from './pages/PropertyAccess'
 import AdminDashboard from './pages/AdminDashboard'
 import About from './pages/About'
 import Contact from './pages/Contact'
@@ -83,6 +84,7 @@ function App() {
           <Route path="/maintenance" element={<Maintenance />} />
           <Route path="/browse" element={<Browse />} />
           <Route path="/properties/:id" element={<PropertyDetail />} />
+          <Route path="/properties/:id/access" element={<PropertyAccess />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />

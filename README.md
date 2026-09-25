@@ -415,3 +415,6 @@ Built against the `activity_logs` table you migrated (`id, user_id, role, event_
 Run `supabase_sql/28_referral_system.sql` in the Supabase SQL Editor after the existing migrations. It creates the permanent referral-source, visit, and event tables plus the secure RPCs used by the frontend.
 
 Referral links use `/?ref=CODE`. Attribution is persisted in the visitor's browser session and claimed when that visitor authenticates. Admins get a new **Referrals** tab for source creation and acquisition analytics.
+
+## V6
+V6 adds per-listing agent fees, proof-of-payment access requests, admin approval, protected landlord contact details, protected exact coordinates, and a secure feedback submission RPC.

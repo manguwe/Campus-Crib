@@ -103,7 +103,7 @@ export default function Browse() {
       const { data: props, error: propsError } = await supabase
         .from('properties')
         .select(
-          'id, title, price, currency, building_type, occupancy, toilet_shared_by, walk_minutes_to_campus, primary_campus_id, amenities, latitude, longitude, availability_status, created_at'
+          'id, title, price, currency, building_type, occupancy, toilet_shared_by, walk_minutes_to_campus, primary_campus_id, amenities, public_latitude, public_longitude, availability_status, agent_fee_amount, agent_fee_currency, created_at'
         )
         .order('created_at', { ascending: false })
 
@@ -193,7 +193,7 @@ export default function Browse() {
     const rows = properties
       .map((p) => ({
         ...p,
-        distanceKm: distanceKm(selectedCampus.latitude, selectedCampus.longitude, p.latitude, p.longitude),
+        distanceKm: distanceKm(selectedCampus.latitude, selectedCampus.longitude, p.public_latitude, p.public_longitude),
         ratingAverage: ratings[p.id]?.average ?? null,
       }))
       .filter((p) => {

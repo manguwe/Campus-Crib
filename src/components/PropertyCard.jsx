@@ -91,9 +91,9 @@ export default function PropertyCard({
               {distanceLabel}
             </span>
           )}
-          {property.latitude != null && property.longitude != null && (
+          {property.public_latitude != null && property.public_longitude != null && (
             <a
-              href={directionsUrl(property.latitude, property.longitude)}
+              href={directionsUrl(property.public_latitude, property.public_longitude)}
               target="_blank"
               rel="noreferrer"
               onClick={handleDirectionsClick}
@@ -113,6 +113,12 @@ export default function PropertyCard({
         </p>
         <h3 className="text-sm font-medium text-gray-800 truncate mt-1">{property.title}</h3>
         <p className="text-xs text-gray-500 mt-1">{summary}</p>
+
+        {property.agent_fee_amount != null && (
+          <div className="mt-2 inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-800">
+            Agent fee: {property.agent_fee_currency || 'ZMW'} {Number(property.agent_fee_amount).toLocaleString()}
+          </div>
+        )}
 
         <div className="flex items-center justify-between mt-3">
           {shownAmenities.length > 0 ? (
