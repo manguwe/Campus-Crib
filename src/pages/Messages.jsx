@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Headphones, MessageCircle, Mic, MicOff, Phone, PhoneCall, PhoneOff, Send, ShieldCheck, UserRound, Volume2, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
-import { loadConversations, loadMessages, sendMessage, startListingChat, startSupportChat, startVoiceCall, sendCallSignal, updateCall } from '../lib/chat'
+import { loadConversations, loadMessages, sendMessage, startListingChat, startSupportChat, startVoiceCall, sendCallSignal, updateCall, getCallContact, loadCallSignals } from '../lib/chat'
 import Spinner from '../components/ui/Spinner'
 
 const ICE_SERVERS = [
@@ -30,6 +30,9 @@ export default function Messages() {
   const [call, setCall] = useState(null)
   const [incomingCall, setIncomingCall] = useState(null)
   const [callError, setCallError] = useState('')
+  const [callContact, setCallContact] = useState(null)
+  const [isMuted, setIsMuted] = useState(false)
+  const pendingIceRef = useRef([])
 
   const selected = conversations.find((c) => c.id === selectedId) || null
   const otherMember = useMemo(() => selected?.members?.find((m) => m.user_id !== user?.id)?.profiles || null, [selected, user?.id])
@@ -140,59 +143,67 @@ export default function Messages() {
     const active = callRef.current
     if (active?.pc) active.pc.close()
     active?.stream?.getTracks?.().forEach((track) => track.stop())
+    if (active?.signalChannel) supabase.removeChannel(active.signalChannel)
     callRef.current = null
+    pendingIceRef.current = []
+    setIsMuted(false)
+  }
+
+  async function applyPendingIce(pc) {
+    const queued = pendingIceRef.current.splice(0)
+    for (const candidate of queued) {
+      try { await pc.addIceCandidate(candidate) } catch {}
+    }
   }
 
   async function beginCall(targetCall, isCaller) {
     setCallError('')
+    pendingIceRef.current = []
     try {
+      if (!window.RTCPeerConnection || !navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Voice calling is not supported by this browser.')
+      }
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream))
+      stream.getTracks().forEach((track) => { track.enabled = !isMuted; pc.addTrack(track, stream) })
       pc.ontrack = (event) => {
-        if (remoteAudioRef.current) {
-          remoteAudioRef.current.srcObject = event.streams[0]
-          remoteAudioRef.current.play().catch(() => {})
-        }
+        const audio = remoteAudioRef.current
+        if (!audio) return
+        audio.srcObject = event.streams[0]
+        audio.volume = 1
+        audio.muted = false
+        const playPromise = audio.play()
+        if (playPromise?.catch) playPromise.catch(() => setCallError('Your browser blocked the remote audio. Tap the call panel to enable speaker audio.'))
       }
       pc.onicecandidate = async (event) => {
-        if (event.candidate) await sendCallSignal(targetCall.id, user.id, 'ice-candidate', event.candidate.toJSON())
+        if (event.candidate) {
+          try { await sendCallSignal(targetCall.id, user.id, 'ice-candidate', event.candidate.toJSON()) } catch {}
+        }
       }
       pc.onconnectionstatechange = () => {
-        if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) endCall('ended')
+        if (pc.connectionState === 'failed') setCallError('The voice connection failed. Check both users have microphone permission and a stable internet connection.')
       }
       callRef.current = { pc, stream }
       setCall(targetCall)
 
       const signalChannel = supabase
-        .channel(`call-signals:${targetCall.id}`)
+        .channel(`call-signals:${targetCall.id}:${user.id}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'voice_call_signals', filter: `call_id=eq.${targetCall.id}` }, async (payload) => {
           if (payload.new.sender_id === user.id) return
-          const signal = payload.new
-          try {
-            if (signal.signal_type === 'offer' && !isCaller) {
-              await pc.setRemoteDescription(signal.payload)
-              const answer = await pc.createAnswer()
-              await pc.setLocalDescription(answer)
-              await sendCallSignal(targetCall.id, user.id, 'answer', answer)
-              await updateCall(targetCall.id, 'active')
-            } else if (signal.signal_type === 'answer' && isCaller) {
-              await pc.setRemoteDescription(signal.payload)
-              await updateCall(targetCall.id, 'active')
-            } else if (signal.signal_type === 'ice-candidate' && signal.payload) {
-              await pc.addIceCandidate(signal.payload)
-            } else if (signal.signal_type === 'hangup') {
-              await endCall('ended')
-            }
-          } catch (e) {
-            setCallError(e.message || 'Voice connection failed.')
-          }
+          await handleCallSignal(pc, targetCall, isCaller, payload.new)
         })
         .subscribe()
       callRef.current.signalChannel = signalChannel
 
+      // Re-read signals after subscribing. This closes the race where the
+      // caller's offer was written before the callee's realtime subscription was ready.
+      const existingSignals = await loadCallSignals(targetCall.id)
+      for (const signal of existingSignals) {
+        if (signal.sender_id !== user.id) await handleCallSignal(pc, targetCall, isCaller, signal)
+      }
+
       if (isCaller) {
-        const offer = await pc.createOffer()
+        const offer = await pc.createOffer({ offerToReceiveAudio: true })
         await pc.setLocalDescription(offer)
         await sendCallSignal(targetCall.id, user.id, 'offer', offer)
       }
@@ -203,18 +214,66 @@ export default function Messages() {
     }
   }
 
+  async function handleCallSignal(pc, targetCall, isCaller, signal) {
+    try {
+      if (signal.signal_type === 'offer' && !isCaller) {
+        if (!pc.currentRemoteDescription) {
+          await pc.setRemoteDescription(signal.payload)
+          await applyPendingIce(pc)
+          const answer = await pc.createAnswer({ offerToReceiveAudio: true })
+          await pc.setLocalDescription(answer)
+          await sendCallSignal(targetCall.id, user.id, 'answer', answer)
+          await updateCall(targetCall.id, 'active')
+        }
+      } else if (signal.signal_type === 'answer' && isCaller) {
+        if (!pc.currentRemoteDescription) {
+          await pc.setRemoteDescription(signal.payload)
+          await applyPendingIce(pc)
+          await updateCall(targetCall.id, 'active')
+        }
+      } else if (signal.signal_type === 'ice-candidate' && signal.payload) {
+        if (pc.remoteDescription) {
+          await pc.addIceCandidate(signal.payload)
+        } else {
+          pendingIceRef.current.push(signal.payload)
+        }
+      } else if (signal.signal_type === 'hangup') {
+        await updateCall(targetCall.id, 'ended')
+        closeCallResources()
+        setCall(null)
+      }
+    } catch (e) {
+      setCallError(e.message || 'Voice connection failed.')
+    }
+  }
+
   async function callOther() {
     if (!selected || !otherMember?.id || !user?.id || call) return
     try {
+      const contact = await getCallContact(selected.id, otherMember.id)
+      setCallContact(contact)
       const newCall = await startVoiceCall(selected.id, user.id, otherMember.id)
       await beginCall(newCall, true)
     } catch (e) { setCallError(e.message || 'Could not start the call.') }
+  }
+
+  function toggleMute() {
+    const stream = callRef.current?.stream
+    if (!stream) return
+    const next = !isMuted
+    stream.getAudioTracks().forEach((track) => { track.enabled = !next })
+    setIsMuted(next)
+  }
+
+  function openFallbackPhone() {
+    if (callContact?.phone) window.location.href = `tel:${callContact.phone}`
   }
 
   async function answerIncoming() {
     const incoming = incomingCall
     setIncomingCall(null)
     if (!incoming) return
+    try { setCallContact(await getCallContact(incoming.conversation_id, incoming.caller_id)) } catch { setCallContact(null) }
     await beginCall(incoming, false)
   }
 
@@ -222,6 +281,7 @@ export default function Messages() {
     if (!incomingCall) return
     try { await updateCall(incomingCall.id, 'declined') } catch {}
     setIncomingCall(null)
+    setCallContact(null)
   }
 
   async function endCall(status = 'ended') {
@@ -234,6 +294,7 @@ export default function Messages() {
     }
     closeCallResources()
     setCall(null)
+    setCallContact(null)
   }
 
   if (loading) return <div className="max-w-6xl mx-auto px-4 py-16"><Spinner label="Loading messages…" /></div>
@@ -269,7 +330,7 @@ export default function Messages() {
 
         <section className="flex flex-col min-w-0">
           {!selected ? <div className="flex-1 flex items-center justify-center p-8 text-center"><div><MessageCircle size={44} className="mx-auto text-accent/60"/><h2 className="mt-3 text-lg font-bold text-primary">Your conversations</h2><p className="mt-1 text-sm text-gray-500 max-w-sm">Select a conversation to send messages, ask for directions, or start a voice call.</p></div></div> : <>
-            <header className="px-5 py-4 border-b border-gray-200 flex items-center justify-between gap-3"><div><p className="font-bold text-primary">{selected.kind === 'support' ? 'Campus Crib Support' : (otherMember?.name || 'Landlord')}</p><p className="text-xs text-gray-500">{selected.kind === 'support' ? 'Directions, account and platform help' : 'Private listing conversation'}</p></div><button onClick={callOther} disabled={!otherMember?.id || Boolean(call)} className="inline-flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-sm font-bold text-white disabled:opacity-40 hover:scale-[1.02] transition"><PhoneCall size={16}/> Call</button></header>
+            <header className="px-5 py-4 border-b border-gray-200 flex items-center justify-between gap-3"><div><p className="font-bold text-primary">{selected.kind === 'support' ? 'Campus Crib Support' : (otherMember?.name || 'Landlord')}</p><p className="text-xs text-gray-500">{selected.kind === 'support' ? 'Directions, account and platform help' : 'Private listing conversation'}</p></div><button onClick={callOther} disabled={!otherMember?.id || Boolean(call)} className="inline-flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-sm font-bold text-white disabled:opacity-40 hover:scale-[1.02] transition"><PhoneCall size={16}/> Call {otherMember?.name || 'person'}</button></header>
             <div className="flex-1 p-5 overflow-y-auto bg-gradient-to-b from-white to-gray-50/80">
               {messagesLoading ? <Spinner label="Loading conversation…"/> : messages.length === 0 ? <div className="h-full min-h-[300px] flex items-center justify-center text-center text-sm text-gray-400"><div><ShieldCheck className="mx-auto text-accent"/><p className="mt-2">This is a private conversation.</p><p>Ask for directions or coordinate your visit here.</p></div></div> : messages.map((m) => <div key={m.id} className={`mb-3 flex ${m.sender_id === user.id ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[78%] rounded-2xl px-4 py-2.5 shadow-sm ${m.sender_id === user.id ? 'bg-primary text-white rounded-br-md' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'}`}><p className="text-sm whitespace-pre-wrap break-words">{m.body}</p><p className={`text-[10px] mt-1 ${m.sender_id === user.id ? 'text-white/70' : 'text-gray-400'}`}>{formatTime(m.created_at)}</p></div></div>)}
               <div ref={messagesEndRef}/>
@@ -281,9 +342,9 @@ export default function Messages() {
 
       <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
 
-      {incomingCall && <div className="fixed inset-0 z-[80] bg-primary/40 backdrop-blur-sm flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-white p-7 shadow-2xl text-center animate-fade-in-up"><div className="mx-auto h-16 w-16 rounded-full bg-accent/10 flex items-center justify-center text-accent animate-pulse"><Phone size={28}/></div><p className="text-xs uppercase tracking-[0.16em] font-bold text-accent mt-4">Incoming voice call</p><h2 className="text-2xl font-bold text-primary mt-1">Someone is calling you</h2><p className="text-sm text-gray-500 mt-2">Answer to talk privately inside Campus Crib.</p><div className="grid grid-cols-2 gap-3 mt-6"><button onClick={declineIncoming} className="rounded-xl border border-gray-200 px-4 py-3 font-bold text-gray-700"><PhoneOff size={18} className="inline mr-2"/>Decline</button><button onClick={answerIncoming} className="rounded-xl bg-accent px-4 py-3 font-bold text-white"><PhoneCall size={18} className="inline mr-2"/>Answer</button></div></div></div>}
+      {incomingCall && <div className="fixed inset-0 z-[80] bg-primary/40 backdrop-blur-sm flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-white p-7 shadow-2xl text-center animate-fade-in-up"><div className="mx-auto h-16 w-16 rounded-full bg-accent/10 flex items-center justify-center text-accent animate-pulse"><Phone size={28}/></div><p className="text-xs uppercase tracking-[0.16em] font-bold text-accent mt-4">Incoming voice call</p><h2 className="text-2xl font-bold text-primary mt-1">{incomingCall?.caller_id === otherMember?.id ? otherMember?.name : 'Someone is calling you'}</h2><p className="text-sm text-gray-500 mt-2">Answer to talk privately inside Campus Crib.</p><div className="grid grid-cols-2 gap-3 mt-6"><button onClick={declineIncoming} className="rounded-xl border border-gray-200 px-4 py-3 font-bold text-gray-700"><PhoneOff size={18} className="inline mr-2"/>Decline</button><button onClick={answerIncoming} className="rounded-xl bg-accent px-4 py-3 font-bold text-white"><PhoneCall size={18} className="inline mr-2"/>Answer</button></div></div></div>}
 
-      {call && <div className="fixed bottom-5 right-5 z-[70] w-[min(360px,calc(100vw-2rem))] rounded-2xl bg-primary text-white p-4 shadow-2xl animate-fade-in-up"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center"><Volume2 size={19}/></div><div className="flex-1"><p className="font-bold">Voice call</p><p className="text-xs text-white/70">{otherMember?.name || 'Campus Crib Support'}</p></div><button onClick={() => endCall('ended')} className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center hover:bg-red-600"><PhoneOff size={18}/></button></div><div className="mt-3 text-xs text-white/70 flex items-center gap-2"><Mic size={13}/> Microphone active · Voice only</div></div>}
+      {call && <div className="fixed bottom-5 right-5 z-[70] w-[min(390px,calc(100vw-2rem))] rounded-2xl bg-primary text-white p-4 shadow-2xl animate-fade-in-up"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center"><Volume2 size={19}/></div><div className="flex-1 min-w-0"><p className="font-bold">Voice call</p><p className="text-xs text-white/70 truncate">{callContact?.name || otherMember?.name || 'Campus Crib Support'}</p></div><button onClick={() => endCall('ended')} className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center hover:bg-red-600"><PhoneOff size={18}/></button></div><div className="mt-3 flex items-center gap-2"><button onClick={toggleMute} className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/15">{isMuted ? <MicOff size={14}/> : <Mic size={14}/>} {isMuted ? 'Unmute' : 'Mute'}</button><span className="text-xs text-white/70">Private voice · your number is not shared</span></div>{callContact?.phone && <div className="mt-3 rounded-xl bg-white/10 p-3 text-xs"><p className="text-white/60">If the in-app call drops</p><div className="mt-1 flex items-center justify-between gap-3"><span className="font-semibold truncate">{callContact.phone}</span><button onClick={openFallbackPhone} className="rounded-lg bg-white text-primary px-3 py-1.5 font-bold">Call number</button></div></div>}</div>}
     </div>
   )
 }

@@ -78,6 +78,25 @@ export async function sendCallSignal(callId, senderId, signalType, payload = nul
   if (error) throw error
 }
 
+export async function getCallContact(conversationId, contactUserId) {
+  const { data, error } = await supabase.rpc('get_call_contact', {
+    p_conversation_id: conversationId,
+    p_contact_user_id: contactUserId,
+  })
+  if (error) throw error
+  return data?.[0] || null
+}
+
+export async function loadCallSignals(callId) {
+  const { data, error } = await supabase
+    .from('voice_call_signals')
+    .select('id, call_id, sender_id, signal_type, payload, created_at')
+    .eq('call_id', callId)
+    .order('id', { ascending: true })
+  if (error) throw error
+  return data || []
+}
+
 export async function updateCall(callId, status) {
   const values = { status }
   if (status === 'active') values.started_at = new Date().toISOString()
