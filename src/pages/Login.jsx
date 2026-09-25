@@ -3,11 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { formatSupabaseError } from '../lib/errorMessages'
 import { dashboardPathForRole } from '../lib/roleRoutes'
+import { usePlatformMode } from '../context/PlatformModeContext'
 import ErrorBanner from '../components/ui/ErrorBanner'
 import PasswordInput from '../components/PasswordInput'
 
 export default function Login() {
   const { signIn } = useAuth()
+  const { mode } = usePlatformMode()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -39,7 +41,8 @@ export default function Login() {
     // Prefer sending them back to wherever ProtectedRoute intercepted them
     // from; otherwise fall back to a role-appropriate dashboard.
     const from = location.state?.from?.pathname
-    navigate(from || dashboardPathForRole(role) || '/', { replace: true })
+    const destination = mode === 'pre_launch' && role !== 'admin' ? '/' : (from || dashboardPathForRole(role) || '/')
+    navigate(destination, { replace: true })
   }
 
   return (

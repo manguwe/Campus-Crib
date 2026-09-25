@@ -4,6 +4,7 @@ import { usePlatformMode } from '../context/PlatformModeContext'
 import PageLoading from './ui/PageLoading'
 
 const PUBLIC_MARKETPLACE_PATHS = ['/browse', '/properties/']
+const PRE_LAUNCH_MEMBER_PATHS = ['/student', '/landlord', '/landlord/verification', '/favourites', '/properties/', '/browse']
 const ALLOWED_DURING_MAINTENANCE = ['/maintenance', '/login', '/forgot-password', '/reset-password', '/register/student', '/register/landlord', '/debug', '/terms']
 
 export default function PlatformModeGate({ children }) {
@@ -15,12 +16,13 @@ export default function PlatformModeGate({ children }) {
 
   const isAllowedDuringMaintenance = ALLOWED_DURING_MAINTENANCE.some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`))
   const isMarketplacePath = PUBLIC_MARKETPLACE_PATHS.some((path) => location.pathname === path || location.pathname.startsWith(path))
+  const isPreLaunchMemberPath = PRE_LAUNCH_MEMBER_PATHS.some((path) => location.pathname === path || location.pathname.startsWith(path))
 
   if (mode === 'maintenance' && !isAllowedDuringMaintenance && profile?.role !== 'admin') {
     return <Navigate to="/maintenance" replace state={{ from: location.pathname }} />
   }
 
-  if (mode === 'pre_launch' && isMarketplacePath && profile?.role !== 'admin') {
+  if (mode === 'pre_launch' && profile?.role !== 'admin' && (isMarketplacePath || isPreLaunchMemberPath)) {
     return <Navigate to="/" replace />
   }
 

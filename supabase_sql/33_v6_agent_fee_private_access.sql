@@ -329,7 +329,7 @@ begin
   insert into public.feedback(submitted_by, name, email, message, user_type, rating, suggestion, feature_requests, source)
   values (auth.uid(), nullif(left(coalesce(p_name,''),200),''), nullif(left(coalesce(p_email,''),320),''), left(p_message,10000),
           nullif(left(coalesce(p_user_type,''),50),''), p_rating, nullif(left(coalesce(p_suggestion,''),5000),''),
-          nullif(left(coalesce(p_feature_requests,''),5000),''), left(coalesce(p_source,'feedback_page'),100));
+          nullif(left(coalesce(p_feature_requests,''),5000),''), left(coalesce(p_source,'feedback_page'),100))
   returning id into result_id;
   return result_id;
 end;

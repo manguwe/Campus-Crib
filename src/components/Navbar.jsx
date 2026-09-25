@@ -3,11 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { dashboardPathForRole } from '../lib/roleRoutes'
+import { usePlatformMode } from '../context/PlatformModeContext'
 import NotificationBell from './NotificationBell'
 import logoIcon from '../assets/logo-icon.png'
 
 export default function Navbar() {
   const { session, profile, signOut } = useAuth()
+  const { mode } = usePlatformMode()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -40,7 +42,9 @@ export default function Navbar() {
   // Landlords manage their own listings and have no reason to browse the
   // marketplace the way a student does - hidden for landlords, visible
   // for guests, students, and admins.
-  const showBrowseLink = profile?.role !== 'landlord'
+  const showBrowseLink = profile?.role !== 'landlord' && (mode !== 'pre_launch' || profile?.role === 'admin')
+  const showFavouritesLink = profile?.role === 'student' && mode !== 'pre_launch'
+  const showDashboardLink = mode !== 'pre_launch' || profile?.role === 'admin'
 
   return (
     <nav className="w-full border-b border-gray-200 bg-white sticky top-0 z-30">
@@ -79,14 +83,14 @@ export default function Navbar() {
             <>
               <NotificationBell />
               <Link to="/invite" className={navLinkClass('/invite')}>Invite</Link>
-              {profile?.role === 'student' && (
+              {showFavouritesLink && (
                 <Link to="/favourites" className={navLinkClass('/favourites')}>
                   Favourites
                 </Link>
               )}
-              <Link to={dashboardPath} className={navLinkClass(dashboardPath)}>
+              {showDashboardLink && <Link to={dashboardPath} className={navLinkClass(dashboardPath)}>
                 {profile?.name ? `Hi, ${profile.name.split(' ')[0]}` : 'Dashboard'}
-              </Link>
+              </Link>}
               <button
                 onClick={handleSignOut}
                 className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-150"
@@ -174,7 +178,7 @@ export default function Navbar() {
               >
                 Invite
               </Link>
-              {profile?.role === 'student' && (
+              {showFavouritesLink && (
                 <Link
                   to="/favourites"
                   onClick={closeMenu}
@@ -183,13 +187,13 @@ export default function Navbar() {
                   Favourites
                 </Link>
               )}
-              <Link
+              {showDashboardLink && <Link
                 to={dashboardPath}
                 onClick={closeMenu}
                 className={`py-2 transition-colors duration-150 ${isActive(dashboardPath) ? 'text-primary font-medium' : 'text-gray-700'}`}
               >
                 {profile?.name ? `Hi, ${profile.name.split(' ')[0]}` : 'Dashboard'}
-              </Link>
+              </Link>}
               <button
                 onClick={handleSignOut}
                 className="mt-1 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 text-center hover:bg-gray-50 transition-colors duration-150"

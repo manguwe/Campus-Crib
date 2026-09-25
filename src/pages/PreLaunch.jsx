@@ -173,6 +173,12 @@ export default function PreLaunch() {
           <p className="text-base sm:text-lg text-gray-600 mt-6 max-w-2xl mx-auto leading-7">
             We are building Campus Crib around the real accommodation journey — not assumptions. Your experience helps us shape what launches.
           </p>
+          {user && (
+            <div className="inline-flex items-center gap-2 mt-5 rounded-full border border-accent/20 bg-accent/5 text-primary px-4 py-2 text-sm font-semibold animate-fade-in-up">
+              <CheckCircle2 size={16} className="text-accent" />
+              You’re signed in. The marketplace is not open yet — help shape what launches.
+            </div>
+          )}
           <div className="flex flex-wrap justify-center gap-3 mt-8">
             <button onClick={openResearch} className="group inline-flex items-center gap-2 rounded-2xl bg-primary text-white px-6 py-3.5 font-bold shadow-lg shadow-primary/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-dark">
               Help shape Campus Crib <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />

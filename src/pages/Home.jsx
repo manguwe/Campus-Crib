@@ -53,7 +53,7 @@ export default function Home() {
   // this doesn't fire on a stale/not-yet-resolved profile during the
   // initial auth check. Placed after all hooks above, per the Rules of
   // Hooks - an early return can't sit between two hook calls.
-  if (mode === 'pre_launch' && !session) return <PreLaunch />
+  if (mode === 'pre_launch' && (!session || profile?.role !== 'admin')) return <PreLaunch />
 
   if (session && !loading) {
     const dashboardPath = dashboardPathForRole(profile?.role)
