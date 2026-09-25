@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabaseClient'
 import { recordReferralEvent } from '../lib/referralTracking'
 import { recordReferralInterest } from '../lib/launchReadiness'
 import { formatSupabaseError } from '../lib/errorMessages'
+import PushNotificationToggle from '../components/PushNotificationToggle'
 
 const roleOptions = [
   { value: 'student', label: 'Student', icon: Search, description: 'Looking for accommodation' },
@@ -177,6 +178,11 @@ export default function PreLaunch() {
             <div className="inline-flex items-center gap-2 mt-5 rounded-full border border-accent/20 bg-accent/5 text-primary px-4 py-2 text-sm font-semibold animate-fade-in-up">
               <CheckCircle2 size={16} className="text-accent" />
               You’re signed in. The marketplace is not open yet — help shape what launches.
+            </div>
+          )}
+          {user && (
+            <div className="mt-4 max-w-xl mx-auto text-left">
+              <PushNotificationToggle />
             </div>
           )}
           <div className="flex flex-wrap justify-center gap-3 mt-8">

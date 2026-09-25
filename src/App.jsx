@@ -33,6 +33,7 @@ import DebugConnection from './pages/DebugConnection'
 import Invite from './pages/Invite'
 import PreLaunch from './pages/PreLaunch'
 import Maintenance from './pages/Maintenance'
+import Messages from './pages/Messages'
 import PlatformModeGate from './components/PlatformModeGate'
 import { PlatformModeProvider } from './context/PlatformModeContext'
 
@@ -145,6 +146,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['student']}>
                 <Favourites />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute allowedRoles={['student', 'landlord', 'admin']}>
+                <Messages />
               </ProtectedRoute>
             }
           />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, LockKeyhole, MapPin, Phone, Upload, Clock3, ShieldCheck, ExternalLink } from 'lucide-react'
+import { CheckCircle2, LockKeyhole, MapPin, Phone, Upload, Clock3, ShieldCheck, ExternalLink, MessageCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
@@ -66,6 +66,7 @@ export default function PropertyAccessPanel({ property }) {
           <div className="text-gray-700"><MapPin size={15} className="inline mr-1"/> Exact coordinates: {privateAccess.latitude?.toFixed(6)}, {privateAccess.longitude?.toFixed(6)}</div><div className="mt-3 rounded-xl overflow-hidden border border-gray-200"><GoogleMapPin latitude={privateAccess.latitude} longitude={privateAccess.longitude} title={property.title} /></div>
           {contacts.map((c) => <a key={c.id} className="inline-flex items-center gap-2 text-gray-700" href={c.contact_type === 'whatsapp' ? `https://wa.me/${c.phone_number.replace(/\D/g,'')}` : `tel:${c.phone_number}`} target={c.contact_type === 'whatsapp' ? '_blank' : undefined} rel="noreferrer"><Phone size={14}/> {c.phone_number} · {c.label || c.contact_type}</a>)}
           <a className="inline-flex items-center gap-2 text-accent font-medium" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${privateAccess.latitude},${privateAccess.longitude}`}><ExternalLink size={14}/> Open exact location in Maps</a>
+          <Link to={`/messages?property=${property.id}`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-white px-4 py-2.5 font-bold mt-2"><MessageCircle size={15}/> Chat about this listing</Link>
         </div>
       </div>
     )

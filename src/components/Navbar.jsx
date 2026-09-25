@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, MessageCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { dashboardPathForRole } from '../lib/roleRoutes'
 import { usePlatformMode } from '../context/PlatformModeContext'
@@ -82,6 +82,7 @@ export default function Navbar() {
           {session && (
             <>
               <NotificationBell />
+              <Link to="/messages" className={navLinkClass('/messages')} title="Messages"><MessageCircle size={18} /></Link>
               <Link to="/invite" className={navLinkClass('/invite')}>Invite</Link>
               {showFavouritesLink && (
                 <Link to="/favourites" className={navLinkClass('/favourites')}>
@@ -104,7 +105,6 @@ export default function Navbar() {
         {/* Mobile: bell (if logged in) + hamburger toggle */}
         <div className="flex md:hidden items-center gap-2">
           {session && <NotificationBell />}
-          {session && <Link to="/invite" onClick={closeMenu} className="sr-only">Invite</Link>}
           <button
             onClick={() => setMenuOpen((v) => !v)}
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
@@ -171,6 +171,13 @@ export default function Navbar() {
 
           {session && (
             <>
+              <Link
+                to="/messages"
+                onClick={closeMenu}
+                className={`py-2 transition-colors duration-150 ${isActive('/messages') ? 'text-primary font-medium' : 'text-gray-700'}`}
+              >
+                Messages
+              </Link>
               <Link
                 to="/invite"
                 onClick={closeMenu}

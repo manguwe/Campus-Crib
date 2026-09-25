@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell, Megaphone } from 'lucide-react'
+import { Bell, Megaphone, MessageCircle, PhoneCall, BellRing } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 
@@ -7,6 +7,7 @@ export default function NotificationBell() {
   const { user } = useAuth()
   const [notifications, setNotifications] = useState([])
   const [open, setOpen] = useState(false)
+  const [toast, setToast] = useState(null)
   const containerRef = useRef(null)
 
   async function loadNotifications() {
@@ -52,7 +53,16 @@ export default function NotificationBell() {
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
       (payload) => {
-        if (isActive) setNotifications((prev) => [payload.new, ...prev])
+        if (!isActive) return
+        setNotifications((prev) => [payload.new, ...prev])
+        setToast(payload.new)
+        window.setTimeout(() => setToast(null), 5000)
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          try {
+            const title = payload.new.type === 'voice_call' ? 'Incoming Campus Crib call' : 'Campus Crib notification'
+            new Notification(title, { body: payload.new.message, icon: '/icon-192.png', tag: payload.new.id })
+          } catch {}
+        }
       }
     )
 
@@ -91,6 +101,17 @@ export default function NotificationBell() {
   if (!user) return null
 
   return (
+    <>
+      {toast && (
+        <div className="fixed top-20 right-4 z-[90] w-[min(380px,calc(100vw-2rem))] animate-fade-in-up rounded-2xl border border-gray-200 bg-white shadow-2xl p-4">
+          <div className="flex gap-3">
+            <div className="h-9 w-9 rounded-full bg-accent/10 text-accent flex items-center justify-center shrink-0"><BellRing size={17}/></div>
+            <div className="min-w-0 flex-1"><p className="font-bold text-primary text-sm">New notification</p><p className="text-sm text-gray-600 mt-0.5 break-words">{toast.message}</p></div>
+            <button onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-700" aria-label="Dismiss notification">×</button>
+          </div>
+        </div>
+      )}
+
     <div className="relative" ref={containerRef}>
       <button
         onClick={() => setOpen((v) => !v)}
@@ -129,9 +150,9 @@ export default function NotificationBell() {
                   }`}
                 >
                   <span className="flex items-start gap-1.5">
-                    {n.type === 'announcement' && (
-                      <Megaphone size={13} className="text-primary shrink-0 mt-0.5" />
-                    )}
+                    {n.type === 'announcement' && <Megaphone size={13} className="text-primary shrink-0 mt-0.5" />}
+                    {n.type === 'chat_message' && <MessageCircle size={13} className="text-accent shrink-0 mt-0.5" />}
+                    {n.type === 'voice_call' && <PhoneCall size={13} className="text-accent shrink-0 mt-0.5" />}
                     {n.message}
                   </span>
                   <div className="text-xs text-gray-400 mt-1 font-normal">
@@ -144,5 +165,6 @@ export default function NotificationBell() {
         </div>
       )}
     </div>
+    </>
   )
 }
