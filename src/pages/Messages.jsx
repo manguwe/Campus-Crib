@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Headphones, MessageCircle, Mic, MicOff, Phone, PhoneCall, PhoneOff, Send, ShieldCheck, UserRound, Volume2, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
-import { loadConversations, loadMessages, sendMessage, startListingChat, startSupportChat, startVoiceCall, sendCallSignal, updateCall, getCallContact, loadCallSignals } from '../lib/chat'
+import { loadConversations, loadMessages, sendMessage, startListingChat, startSupportChat, startVoiceCall, sendCallSignal, updateCall, getCallContact, getVoiceCallIdentity, loadCallSignals } from '../lib/chat'
 import Spinner from '../components/ui/Spinner'
 
 const ICE_SERVERS = [
@@ -29,6 +29,7 @@ export default function Messages() {
   const [startingChat, setStartingChat] = useState(false)
   const [call, setCall] = useState(null)
   const [incomingCall, setIncomingCall] = useState(null)
+  const [incomingCaller, setIncomingCaller] = useState(null)
   const [callError, setCallError] = useState('')
   const [callContact, setCallContact] = useState(null)
   const [isMuted, setIsMuted] = useState(false)
@@ -95,7 +96,10 @@ export default function Messages() {
     if (!user?.id) return undefined
     ;(async () => {
       const { data } = await supabase.from('voice_calls').select('*').eq('callee_id', user.id).eq('status', 'ringing').order('created_at', { ascending: false }).limit(1)
-      if (data?.[0]) setIncomingCall(data[0])
+      if (data?.[0]) {
+        setIncomingCall(data[0])
+        try { setIncomingCaller(await getVoiceCallIdentity(data[0].id)) } catch {}
+      }
     })()
   }, [user?.id])
 
@@ -106,6 +110,7 @@ export default function Messages() {
       .channel(`incoming-calls:${user.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'voice_calls', filter: `callee_id=eq.${user.id}` }, async (payload) => {
         setIncomingCall(payload.new)
+        try { setIncomingCaller(await getVoiceCallIdentity(payload.new.id)) } catch { setIncomingCaller(null) }
         try { await refreshConversations(payload.new.conversation_id) } catch {}
       })
       .subscribe()
@@ -272,6 +277,7 @@ export default function Messages() {
   async function answerIncoming() {
     const incoming = incomingCall
     setIncomingCall(null)
+    setIncomingCaller(null)
     if (!incoming) return
     try { setCallContact(await getCallContact(incoming.conversation_id, incoming.caller_id)) } catch { setCallContact(null) }
     await beginCall(incoming, false)
@@ -281,6 +287,7 @@ export default function Messages() {
     if (!incomingCall) return
     try { await updateCall(incomingCall.id, 'declined') } catch {}
     setIncomingCall(null)
+    setIncomingCaller(null)
     setCallContact(null)
   }
 
@@ -322,7 +329,7 @@ export default function Messages() {
             {conversations.length === 0 ? <div className="p-6 text-center text-sm text-gray-400">No conversations yet.<br/>Open a listing after contact access is approved, or start a support chat.</div> : conversations.map((c) => {
               const person = c.members?.find((m) => m.user_id !== user.id)?.profiles
               return <button key={c.id} onClick={() => setSelectedId(c.id)} className={`w-full text-left p-4 border-b border-gray-100 transition ${selectedId === c.id ? 'bg-white border-l-4 border-l-accent' : 'hover:bg-white'}`}>
-                <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"><UserRound size={18}/></div><div className="min-w-0"><p className="font-semibold text-gray-900 truncate">{c.kind === 'support' ? 'Campus Crib Support' : (person?.name || 'Landlord')}</p><p className="text-xs text-gray-500">{c.kind === 'support' ? 'Support & directions' : 'Property chat'}</p></div></div>
+                <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"><UserRound size={18}/></div><div className="min-w-0"><p className="font-semibold text-gray-900 truncate">{c.kind === 'support' ? `Campus Crib Support${person?.name ? ` · ${person.name}` : ''}` : (person?.name || 'Landlord')}</p><p className="text-xs text-gray-500">{c.kind === 'support' ? 'Support & directions' : 'Property chat'}</p></div></div>
               </button>
             })}
           </div>
@@ -330,7 +337,7 @@ export default function Messages() {
 
         <section className="flex flex-col min-w-0">
           {!selected ? <div className="flex-1 flex items-center justify-center p-8 text-center"><div><MessageCircle size={44} className="mx-auto text-accent/60"/><h2 className="mt-3 text-lg font-bold text-primary">Your conversations</h2><p className="mt-1 text-sm text-gray-500 max-w-sm">Select a conversation to send messages, ask for directions, or start a voice call.</p></div></div> : <>
-            <header className="px-5 py-4 border-b border-gray-200 flex items-center justify-between gap-3"><div><p className="font-bold text-primary">{selected.kind === 'support' ? 'Campus Crib Support' : (otherMember?.name || 'Landlord')}</p><p className="text-xs text-gray-500">{selected.kind === 'support' ? 'Directions, account and platform help' : 'Private listing conversation'}</p></div><button onClick={callOther} disabled={!otherMember?.id || Boolean(call)} className="inline-flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-sm font-bold text-white disabled:opacity-40 hover:scale-[1.02] transition"><PhoneCall size={16}/> Call {otherMember?.name || 'person'}</button></header>
+            <header className="px-5 py-4 border-b border-gray-200 flex items-center justify-between gap-3"><div><p className="font-bold text-primary">{selected.kind === 'support' ? `Campus Crib Support${otherMember?.name ? ` · ${otherMember.name}` : ''}` : (otherMember?.name || 'Landlord')}</p><p className="text-xs text-gray-500">{selected.kind === 'support' ? 'Directions, account and platform help' : 'Private listing conversation'}</p></div><button onClick={callOther} disabled={!otherMember?.id || Boolean(call)} className="inline-flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-sm font-bold text-white disabled:opacity-40 hover:scale-[1.02] transition"><PhoneCall size={16}/> Call {otherMember?.name || 'person'}</button></header>
             <div className="flex-1 p-5 overflow-y-auto bg-gradient-to-b from-white to-gray-50/80">
               {messagesLoading ? <Spinner label="Loading conversation…"/> : messages.length === 0 ? <div className="h-full min-h-[300px] flex items-center justify-center text-center text-sm text-gray-400"><div><ShieldCheck className="mx-auto text-accent"/><p className="mt-2">This is a private conversation.</p><p>Ask for directions or coordinate your visit here.</p></div></div> : messages.map((m) => <div key={m.id} className={`mb-3 flex ${m.sender_id === user.id ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[78%] rounded-2xl px-4 py-2.5 shadow-sm ${m.sender_id === user.id ? 'bg-primary text-white rounded-br-md' : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'}`}><p className="text-sm whitespace-pre-wrap break-words">{m.body}</p><p className={`text-[10px] mt-1 ${m.sender_id === user.id ? 'text-white/70' : 'text-gray-400'}`}>{formatTime(m.created_at)}</p></div></div>)}
               <div ref={messagesEndRef}/>
@@ -342,7 +349,7 @@ export default function Messages() {
 
       <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
 
-      {incomingCall && <div className="fixed inset-0 z-[80] bg-primary/40 backdrop-blur-sm flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-white p-7 shadow-2xl text-center animate-fade-in-up"><div className="mx-auto h-16 w-16 rounded-full bg-accent/10 flex items-center justify-center text-accent animate-pulse"><Phone size={28}/></div><p className="text-xs uppercase tracking-[0.16em] font-bold text-accent mt-4">Incoming voice call</p><h2 className="text-2xl font-bold text-primary mt-1">{incomingCall?.caller_id === otherMember?.id ? otherMember?.name : 'Someone is calling you'}</h2><p className="text-sm text-gray-500 mt-2">Answer to talk privately inside Campus Crib.</p><div className="grid grid-cols-2 gap-3 mt-6"><button onClick={declineIncoming} className="rounded-xl border border-gray-200 px-4 py-3 font-bold text-gray-700"><PhoneOff size={18} className="inline mr-2"/>Decline</button><button onClick={answerIncoming} className="rounded-xl bg-accent px-4 py-3 font-bold text-white"><PhoneCall size={18} className="inline mr-2"/>Answer</button></div></div></div>}
+      {incomingCall && <div className="fixed inset-0 z-[80] bg-primary/40 backdrop-blur-sm flex items-center justify-center p-4"><div className="w-full max-w-sm rounded-3xl bg-white p-7 shadow-2xl text-center animate-fade-in-up"><div className="mx-auto h-16 w-16 rounded-full bg-accent/10 flex items-center justify-center text-accent animate-pulse"><Phone size={28}/></div><p className="text-xs uppercase tracking-[0.16em] font-bold text-accent mt-4">Incoming voice call</p><h2 className="text-2xl font-bold text-primary mt-1">{incomingCaller?.caller_name || otherMember?.name || 'Someone is calling you'}</h2><p className="text-sm text-gray-500 mt-2">Answer to talk privately inside Campus Crib.</p><div className="grid grid-cols-2 gap-3 mt-6"><button onClick={declineIncoming} className="rounded-xl border border-gray-200 px-4 py-3 font-bold text-gray-700"><PhoneOff size={18} className="inline mr-2"/>Decline</button><button onClick={answerIncoming} className="rounded-xl bg-accent px-4 py-3 font-bold text-white"><PhoneCall size={18} className="inline mr-2"/>Answer</button></div></div></div>}
 
       {call && <div className="fixed bottom-5 right-5 z-[70] w-[min(390px,calc(100vw-2rem))] rounded-2xl bg-primary text-white p-4 shadow-2xl animate-fade-in-up"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center"><Volume2 size={19}/></div><div className="flex-1 min-w-0"><p className="font-bold">Voice call</p><p className="text-xs text-white/70 truncate">{callContact?.name || otherMember?.name || 'Campus Crib Support'}</p></div><button onClick={() => endCall('ended')} className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center hover:bg-red-600"><PhoneOff size={18}/></button></div><div className="mt-3 flex items-center gap-2"><button onClick={toggleMute} className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold hover:bg-white/15">{isMuted ? <MicOff size={14}/> : <Mic size={14}/>} {isMuted ? 'Unmute' : 'Mute'}</button><span className="text-xs text-white/70">Private voice · your number is not shared</span></div>{callContact?.phone && <div className="mt-3 rounded-xl bg-white/10 p-3 text-xs"><p className="text-white/60">If the in-app call drops</p><div className="mt-1 flex items-center justify-between gap-3"><span className="font-semibold truncate">{callContact.phone}</span><button onClick={openFallbackPhone} className="rounded-lg bg-white text-primary px-3 py-1.5 font-bold">Call number</button></div></div>}</div>}
     </div>

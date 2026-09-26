@@ -31,6 +31,7 @@ import Unauthorized from './pages/Unauthorized'
 import Suspended from './pages/Suspended'
 import DebugConnection from './pages/DebugConnection'
 import Invite from './pages/Invite'
+import Reservations from './pages/Reservations'
 import PreLaunch from './pages/PreLaunch'
 import Maintenance from './pages/Maintenance'
 import Messages from './pages/Messages'
@@ -146,6 +147,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['student']}>
                 <Favourites />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reservations"
+            element={
+              <ProtectedRoute allowedRoles={['student', 'landlord']}>
+                <Reservations />
               </ProtectedRoute>
             }
           />

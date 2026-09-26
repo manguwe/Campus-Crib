@@ -84,6 +84,9 @@ export default function Navbar() {
               <NotificationBell />
               <Link to="/messages" className={navLinkClass('/messages')} title="Messages"><MessageCircle size={18} /></Link>
               <Link to="/invite" className={navLinkClass('/invite')}>Invite</Link>
+              {(profile?.role === 'student' || profile?.role === 'landlord') && mode !== 'pre_launch' && (
+                <Link to="/reservations" className={navLinkClass('/reservations')}>Reservations</Link>
+              )}
               {showFavouritesLink && (
                 <Link to="/favourites" className={navLinkClass('/favourites')}>
                   Favourites
@@ -178,6 +181,15 @@ export default function Navbar() {
               >
                 Messages
               </Link>
+              {(profile?.role === 'student' || profile?.role === 'landlord') && mode !== 'pre_launch' && (
+                <Link
+                  to="/reservations"
+                  onClick={closeMenu}
+                  className={`py-2 transition-colors duration-150 ${isActive('/reservations') ? 'text-primary font-medium' : 'text-gray-700'}`}
+                >
+                  Reservations
+                </Link>
+              )}
               <Link
                 to="/invite"
                 onClick={closeMenu}

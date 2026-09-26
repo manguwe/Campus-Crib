@@ -14,6 +14,7 @@ import ReviewsSection from '../components/ReviewsSection'
 import RatingSummary from '../components/RatingSummary'
 import AvailabilityStatusBadge from '../components/AvailabilityStatusBadge'
 import ReportListingButton from '../components/ReportListingButton'
+import ReservationRequest from '../components/ReservationRequest'
 import Lightbox from '../components/Lightbox'
 import PageLoading from '../components/ui/PageLoading'
 
@@ -214,6 +215,7 @@ export default function PropertyDetail() {
             </p>
           )}
           <PropertyAccessPanel property={property} />
+          <ReservationRequest property={property} />
 
           {/* Only a logged-in student, viewing a listing that isn't
               their own, can report it - not guests, not the landlord

@@ -87,6 +87,12 @@ export async function getCallContact(conversationId, contactUserId) {
   return data?.[0] || null
 }
 
+export async function getVoiceCallIdentity(callId) {
+  const { data, error } = await supabase.rpc('get_voice_call_identity', { p_call_id: callId })
+  if (error) throw error
+  return data?.[0] || null
+}
+
 export async function loadCallSignals(callId) {
   const { data, error } = await supabase
     .from('voice_call_signals')

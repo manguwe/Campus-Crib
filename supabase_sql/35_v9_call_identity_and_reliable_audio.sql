@@ -23,9 +23,9 @@ begin
 
   return query
   select
-    p.name,
-    coalesce(nullif(lp.contact_phone, ''), nullif(p.phone, ''), nullif(pc.phone_number, '')) as phone,
-    au.email
+    p.name::text as name,
+    coalesce(nullif(lp.contact_phone, ''), nullif(p.phone, ''), nullif(pc.phone_number, ''))::text as phone,
+    au.email::text as email
   from public.profiles p
   join auth.users au on au.id = p.id
   left join public.landlord_profiles lp on lp.id = p.id
