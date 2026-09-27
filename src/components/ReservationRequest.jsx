@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { CalendarDays, CheckCircle2, Clock3, Users, XCircle } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock3, MessageCircle, Users, XCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getReservationStatus, requestReservation } from '../lib/reservations'
 import { formatSupabaseError } from '../lib/errorMessages'
+import { startReservationChat } from '../lib/chat'
+import { useNavigate } from 'react-router-dom'
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10)
@@ -10,6 +12,7 @@ function todayIso() {
 
 export default function ReservationRequest({ property }) {
   const { user, role } = useAuth()
+  const navigate = useNavigate()
   const [reservation, setReservation] = useState(null)
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
@@ -39,9 +42,13 @@ export default function ReservationRequest({ property }) {
   async function submit(e) {
     e.preventDefault(); setError(''); setSaving(true)
     try {
-      await requestReservation({ propertyId: property.id, moveInDate: moveIn, moveOutDate: moveOut, occupants, note })
+      const reservationId = await requestReservation({ propertyId: property.id, moveInDate: moveIn, moveOutDate: moveOut, occupants, note })
       setOpen(false)
       await load()
+      try {
+        const conversationId = await startReservationChat(reservationId)
+        navigate(`/messages?conversation=${conversationId}`)
+      } catch {}
     } catch (err) {
       setError(formatSupabaseError(err, 'Could not submit the reservation request.'))
     } finally { setSaving(false) }

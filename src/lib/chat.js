@@ -6,6 +6,18 @@ export async function startListingChat(propertyId) {
   return data
 }
 
+export async function startReservationChat(reservationId) {
+  const { data, error } = await supabase.rpc('start_reservation_conversation', { p_reservation_id: reservationId })
+  if (error) throw error
+  return data
+}
+
+export async function startDirectChat(targetUserId) {
+  const { data, error } = await supabase.rpc('start_direct_conversation', { p_target_user_id: targetUserId })
+  if (error) throw error
+  return data
+}
+
 export async function startSupportChat() {
   const { data, error } = await supabase.rpc('start_support_conversation')
   if (error) throw error
@@ -15,7 +27,7 @@ export async function startSupportChat() {
 export async function loadConversations(userId) {
   const { data, error } = await supabase
     .from('conversation_members')
-    .select('conversation_id, conversations(id, property_id, kind, updated_at, created_at)')
+    .select('conversation_id, conversations(id, property_id, reservation_id, kind, updated_at, created_at, properties(id, title))')
     .eq('user_id', userId)
     .order('joined_at', { ascending: false })
   if (error) throw error

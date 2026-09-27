@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Loader2, Mail, MessageCircle, Phone } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatSupabaseError } from '../../lib/errorMessages'
 import PageLoading from '../ui/PageLoading'
@@ -27,17 +28,15 @@ export default function AdminUsers() {
   const [busyId, setBusyId] = useState(null)
   const [activityUser, setActivityUser] = useState(null)
   const [suspendingUser, setSuspendingUser] = useState(null)
+  const navigate = useNavigate()
 
   async function load() {
     setLoading(true)
     setError('')
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, name, role, is_suspended, suspension_reason, suspended_until, created_at')
-      .order('created_at', { ascending: false })
+    const { data, error } = await supabase.rpc('get_admin_user_directory')
 
     if (error) setError(formatSupabaseError(error, 'Could not load users.'))
-    else setUsers(data)
+    else setUsers(data || [])
     setLoading(false)
   }
 
@@ -104,7 +103,7 @@ export default function AdminUsers() {
           <tr>
             <th className="text-left px-4 py-2">Name</th>
             <th className="text-left px-4 py-2">Role</th>
-            <th className="text-left px-4 py-2">Phone</th>
+            <th className="text-left px-4 py-2">Contact</th>
             <th className="text-left px-4 py-2">Status</th>
             <th className="text-right px-4 py-2">Actions</th>
           </tr>
@@ -118,7 +117,16 @@ export default function AdminUsers() {
                   {u.role}
                 </span>
               </td>
-              <td className="px-4 py-3 text-gray-600">{'Private — available through approved contact workflow'}</td>
+              <td className="px-4 py-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-gray-700">
+                    {u.phone ? <a href={`tel:${u.phone}`} className="inline-flex items-center gap-1 hover:text-primary"><Phone size={14}/> {u.phone}</a> : <span className="text-gray-400">No phone</span>}
+                    {u.email && <a href={`mailto:${u.email}`} className="inline-flex items-center gap-1 hover:text-primary"><Mail size={14}/> {u.email}</a>}
+                    {u.contact_email && u.contact_email !== u.email && <a href={`mailto:${u.contact_email}`} className="inline-flex items-center gap-1 hover:text-primary"><Mail size={14}/> {u.contact_email}</a>}
+                    {u.whatsapp && <a href={`https://wa.me/${u.whatsapp.replace(/[^0-9+]/g, '').replace(/^\+/, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-primary">WhatsApp {u.whatsapp}</a>}
+                  </div>
+                </div>
+              </td>
               <td className="px-4 py-3">
                 {u.is_suspended ? (
                   <div>
@@ -139,7 +147,19 @@ export default function AdminUsers() {
                 )}
               </td>
               <td className="px-4 py-3 text-right">
-                <div className="flex items-center justify-end gap-3">
+                <div className="flex items-center justify-end gap-2 flex-wrap">
+                  {u.role !== 'admin' && <button
+                    onClick={async () => {
+                      setError('')
+                      const { data: conversationId, error: chatError } = await supabase.rpc('start_direct_conversation', { p_target_user_id: u.id })
+                      if (chatError) { setError(formatSupabaseError(chatError, 'Could not start the conversation.')); return }
+                      navigate(`/messages?conversation=${conversationId}`)
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:text-primary"
+                  ><MessageCircle size={14}/> Message</button>}
+                  {u.phone && <a href={`tel:${u.phone}`} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700"><Phone size={14}/> Call</a>}
+                  {u.email && <a href={`mailto:${u.email}`} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700"><Mail size={14}/> Email</a>}
+                  {u.whatsapp && <a href={`https://wa.me/${u.whatsapp.replace(/[^0-9+]/g, '').replace(/^\+/, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700">WhatsApp</a>}
                   <button
                     onClick={() => setActivityUser(u)}
                     className="text-gray-500 font-medium hover:text-primary hover:underline transition-colors duration-150"
