@@ -3,13 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes" />
     <meta name="color-scheme" content="light" />
     <meta name="description" content="Campus Crib — find your perfect student home. Search verified boarding houses and rooms near your campus." />
 
+    <!-- Critical: Prevent browsers from auto-reloading on connection issues -->
+    <meta http-equiv="Cache-Control" content="public, max-age=3600" />
+    
+    <!-- Critical: Compatibility for older browsers and devices -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Network timeout and fallback for slow connections -->
+    <meta name="theme-color" content="#0B3D62" />
+    
     <!-- PWA manifest (Part 1) -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#0B3D62" />
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- iOS-specific: without these, "Add to Home Screen" produces a
@@ -20,11 +28,69 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Campus Crib" />
+    
+    <!-- Samsung, Nokia, older Android: disable aggressive dark mode -->
+    <meta name="supported-color-schemes" content="light" />
+    
+    <!-- Critical: Prevent network timeouts on slow devices -->
+    <script>
+      // Timeout handler for slow devices - shows fallback UI if app doesn't load in 12 seconds
+      window.__appLoadTimeout = setTimeout(() => {
+        if (!window.__appLoaded) {
+          document.body.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, -apple-system, sans-serif; background: #EEF2F8; color: #1E293B; text-align: center; padding: 20px;">
+              <div>
+                <h2 style="margin: 0 0 10px 0; font-size: 18px;">Campus Crib is loading...</h2>
+                <p style="margin: 0 0 20px 0; font-size: 14px; color: #64748B;">
+                  This is taking longer than usual. 
+                  <br/>Try: <strong>Refreshing the page</strong> or <strong>Clearing your browser cache</strong>
+                </p>
+                <button onclick="location.reload()" style="padding: 10px 20px; background: #0B3D62; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                  Refresh Page
+                </button>
+              </div>
+            </div>
+          `;
+        }
+      }, 12000);
+    </script>
+
+    <!-- Critical: Disable aggressive optimizations on older phones -->
+    <style>
+      /* Prevent forced dark mode on Samsung/Nokia */
+      @media (prefers-color-scheme: dark) {
+        html, body { color-scheme: light !important; }
+      }
+      
+      /* Prevent layout shift during load */
+      body { margin: 0; padding: 0; overflow-x: hidden; }
+      
+      /* Loading skeleton - shows while app boots */
+      #root::before {
+        content: '';
+        display: block;
+        width: 100%;
+        height: 100vh;
+        background: linear-gradient(90deg, #EEF2F8 0%, #E8ECEF 50%, #EEF2F8 100%);
+        background-size: 200% 100%;
+        animation: pulse 2s infinite;
+      }
+      
+      @keyframes pulse {
+        0%, 100% { background-position: 200% 0; }
+        50% { background-position: -200% 0; }
+      }
+    </style>
 
     <title>Campus Crib</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Signal that app has started loading
+      window.__appLoaded = true;
+      if (window.__appLoadTimeout) clearTimeout(window.__appLoadTimeout);
+    </script>
   </body>
 </html>
