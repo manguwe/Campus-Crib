@@ -26,7 +26,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 // in-app webviews) rather than throwing.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch((err) => {
       console.warn('[sw] registration failed', err)
     })
   })

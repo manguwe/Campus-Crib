@@ -21,23 +21,15 @@ export function isStandalone() {
   return Boolean(window.navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches
 }
 
-/** Parses the iOS major.minor version from the UA string (e.g. "16_4"
- * -> 16.4). Returns null if it can't be determined (e.g. not iOS, or
- * iPadOS 13+ masquerading as a Mac, which doesn't include a version in
- * its UA at all - treated as unknown/unsupported rather than guessed). */
-export function getIOSVersion() {
-  if (typeof navigator === 'undefined') return null
-  const match = navigator.userAgent.match(/OS (\d+)_(\d+)/)
-  if (!match) return null
-  return Number(match[1]) + Number(match[2]) / 10
-}
-
-/** Push on iOS specifically requires standalone mode AND iOS 16.4+ -
- * the Push API doesn't exist in a regular Safari tab at all, and didn't
- * exist even in standalone mode before 16.4. */
+/**
+ * iOS/iPadOS 16.4+ exposes the Push API only to Home Screen web apps.
+ * Use feature detection rather than parsing an iOS version from the user
+ * agent: iPadOS 13+ can identify itself as Macintosh and does not expose a
+ * reliable iPadOS version in the UA string.
+ */
 export function iosSupportsStandalonePush() {
-  const version = getIOSVersion()
-  return version !== null && version >= 16.4
+  if (typeof window === 'undefined' || !isIOS() || !isStandalone()) return false
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 }
 
 /** One of: 'unsupported' (no Push API at all in this browser/context -
@@ -54,8 +46,10 @@ export function getPlatformState() {
 
   if (isIOS()) {
     if (!isStandalone()) return 'ios-needs-install'
-    if (!iosSupportsStandalonePush()) return 'unsupported'
-    return 'ready'
+    // Once installed, rely on the actual APIs exposed by this iOS/iPadOS
+    // version instead of guessing from the UA. Older iOS versions simply
+    // won't expose PushManager/Notification here.
+    return iosSupportsStandalonePush() ? 'ready' : 'unsupported'
   }
 
   return 'ready'
@@ -77,12 +71,19 @@ export async function subscribeToPush(userId) {
     throw new Error('Push notifications are not configured on this project yet.')
   }
 
+  if (getPlatformState() !== 'ready') {
+    throw new Error('Push notifications are not available in this browser or app installation.')
+  }
+
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') {
     return permission
   }
 
   const registration = await navigator.serviceWorker.ready
+  if (!registration.pushManager) {
+    throw new Error('Push notifications are not supported by this browser.')
+  }
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, Mail, MessageCircle, Phone } from 'lucide-react'
+import { Mail, MessageCircle, Phone } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatSupabaseError } from '../../lib/errorMessages'
 import PageLoading from '../ui/PageLoading'
@@ -20,6 +20,58 @@ const DURATION_OPTIONS = [
   { value: '30', label: '30 days' },
   { value: 'indefinite', label: 'Indefinite (until lifted)' },
 ]
+
+function whatsappNumber(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  const digits = raw.replace(/\D/g, '')
+  if (digits.startsWith('00')) return digits.slice(2)
+  // Campus Crib is Zambia-focused. Convert the common local 10-digit
+  // format (0977xxxxxx / 0966xxxxxx / 0955xxxxxx) to +260 for wa.me.
+  if (digits.length === 10 && digits.startsWith('0')) return `260${digits.slice(1)}`
+  return digits
+}
+
+function buildWhatsAppUrl(user) {
+  const number = whatsappNumber(user.whatsapp || user.contact_phone || user.phone)
+  if (!number) return ''
+  const message = [
+    `Hello ${user.name || 'there'},`,
+    '',
+    'This is Campus Crib Admin. We have seen that you registered on the Campus Crib platform.',
+    'Thank you for joining Campus Crib.',
+    '',
+    'If you have any questions, a complaint, or need help with your account or a listing, please let us know here and our team will assist you.',
+    '',
+    '— Campus Crib Admin',
+  ].join('\n')
+  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`
+}
+
+function buildEmailUrl(user) {
+  const email = user.email || user.contact_email
+  if (!email) return ''
+  const subject = 'Campus Crib — Welcome & Support'
+  const body = [
+    `Hello ${user.name || 'there'},`,
+    '',
+    'This is Campus Crib Admin. We have seen that you registered on the Campus Crib platform.',
+    'Thank you for joining Campus Crib.',
+    '',
+    'If you have any questions, a complaint, or need help with your account or a listing, please reply to this email and our team will assist you.',
+    '',
+    '— Campus Crib Admin',
+  ].join('\n')
+  return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}
+
+function WhatsAppIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M20.52 3.48A11.82 11.82 0 0 0 12.08 0C5.55 0 .24 5.31.24 11.84c0 2.09.55 4.13 1.59 5.93L.16 24l6.37-1.67a11.82 11.82 0 0 0 5.55 1.39h.01c6.53 0 11.84-5.31 11.84-11.84 0-3.17-1.23-6.14-3.41-8.4ZM12.09 21.7h-.01a9.82 9.82 0 0 1-5.01-1.37l-.36-.21-3.78.99 1.01-3.69-.23-.38a9.82 9.82 0 1 1 8.38 4.66Zm5.39-7.37c-.29-.15-1.72-.85-1.99-.95-.27-.1-.46-.15-.65.15-.19.29-.75.95-.92 1.14-.17.19-.34.22-.63.07-.29-.15-1.2-.44-2.28-1.4-.84-.75-1.4-1.67-1.56-1.95-.16-.29-.02-.44.12-.59.13-.13.29-.34.44-.51.15-.17.19-.29.29-.49.1-.19.05-.37-.02-.51-.07-.15-.65-1.57-.89-2.15-.23-.56-.47-.48-.65-.49h-.56c-.19 0-.49.07-.75.37-.26.29-1  .98-1 2.4s1.03 2.78 1.18 2.97c.15.19 2.02 3.08 4.9 4.32.68.29 1.21.46 1.62.59.68.22 1.3.19 1.79.12.55-.08 1.72-.7 1.96-1.38.24-.68.24-1.27.17-1.38-.07-.12-.26-.19-.55-.34Z" />
+    </svg>
+  )
+}
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([])
@@ -118,12 +170,15 @@ export default function AdminUsers() {
                 </span>
               </td>
               <td className="px-4 py-3">
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2 text-gray-700">
-                    {u.phone ? <a href={`tel:${u.phone}`} className="inline-flex items-center gap-1 hover:text-primary"><Phone size={14}/> {u.phone}</a> : <span className="text-gray-400">No phone</span>}
-                    {u.email && <a href={`mailto:${u.email}`} className="inline-flex items-center gap-1 hover:text-primary"><Mail size={14}/> {u.email}</a>}
-                    {u.contact_email && u.contact_email !== u.email && <a href={`mailto:${u.contact_email}`} className="inline-flex items-center gap-1 hover:text-primary"><Mail size={14}/> {u.contact_email}</a>}
-                    {u.whatsapp && <a href={`https://wa.me/${u.whatsapp.replace(/[^0-9+]/g, '').replace(/^\+/, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-primary">WhatsApp {u.whatsapp}</a>}
+                    {u.phone ? <a href={`tel:${u.phone}`} className="inline-flex items-center gap-1 hover:text-primary"><Phone size={14}/> {u.phone}</a> : <span className="text-gray-400">No phone number on file</span>}
+                    {u.contact_phone && u.contact_phone !== u.phone && <span className="text-xs text-gray-400">Contact: {u.contact_phone}</span>}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    {u.email && <a href={buildEmailUrl(u)} className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 hover:text-primary hover:border-primary/30"><Mail size={13}/> Email</a>}
+                    {(u.phone || u.contact_phone || u.whatsapp) && <a href={buildWhatsAppUrl(u)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 hover:text-primary hover:border-primary/30"><WhatsAppIcon size={14}/> WhatsApp</a>}
+                    {u.contact_email && u.contact_email !== u.email && <a href={`mailto:${u.contact_email}`} className="inline-flex items-center gap-1 text-gray-500 hover:text-primary"><Mail size={13}/> {u.contact_email}</a>}
                   </div>
                 </div>
               </td>
@@ -158,8 +213,8 @@ export default function AdminUsers() {
                     className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:text-primary"
                   ><MessageCircle size={14}/> Message</button>}
                   {u.phone && <a href={`tel:${u.phone}`} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700"><Phone size={14}/> Call</a>}
-                  {u.email && <a href={`mailto:${u.email}`} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700"><Mail size={14}/> Email</a>}
-                  {u.whatsapp && <a href={`https://wa.me/${u.whatsapp.replace(/[^0-9+]/g, '').replace(/^\+/, '')}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700">WhatsApp</a>}
+                  {(u.email || u.contact_email) && <a href={buildEmailUrl(u)} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700"><Mail size={14}/> Email</a>}
+                  {(u.phone || u.contact_phone || u.whatsapp) && <a href={buildWhatsAppUrl(u)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700"><WhatsAppIcon size={14}/> WhatsApp</a>}
                   <button
                     onClick={() => setActivityUser(u)}
                     className="text-gray-500 font-medium hover:text-primary hover:underline transition-colors duration-150"

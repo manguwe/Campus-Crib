@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { dashboardPathForRole } from '../lib/roleRoutes'
 import { usePlatformMode } from '../context/PlatformModeContext'
 import NotificationBell from './NotificationBell'
+import PWAInstallButton from './PWAInstallButton'
 import logoIcon from '../assets/logo-icon.png'
 
 export default function Navbar() {
@@ -64,6 +65,7 @@ export default function Navbar() {
 
           {!session && (
             <>
+              <PWAInstallButton />
               <Link to="/register/student" className={navLinkClass('/register/student')}>
                 Find a room
               </Link>
@@ -81,6 +83,7 @@ export default function Navbar() {
 
           {session && (
             <>
+              <PWAInstallButton />
               <NotificationBell />
               <Link to="/messages" className={navLinkClass('/messages')} title="Messages"><MessageCircle size={18} /></Link>
               <Link to="/invite" className={navLinkClass('/invite')}>Invite</Link>
@@ -148,6 +151,7 @@ export default function Navbar() {
 
           {!session && (
             <>
+              <PWAInstallButton mobile />
               <Link
                 to="/register/student"
                 onClick={closeMenu}
@@ -174,6 +178,7 @@ export default function Navbar() {
 
           {session && (
             <>
+              <PWAInstallButton mobile />
               <Link
                 to="/messages"
                 onClick={closeMenu}

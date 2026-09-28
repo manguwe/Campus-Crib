@@ -1,9 +1,12 @@
 {
   "name": "Campus Crib",
   "short_name": "Campus Crib",
+  "id": "/",
   "description": "Find your perfect student home.",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "scope": "/",
   "theme_color": "#0B3D62",
   "background_color": "#EEF2F8",
   "icons": [
