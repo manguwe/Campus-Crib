@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { formatSupabaseError } from '../lib/errorMessages'
 import ErrorBanner from './ui/ErrorBanner'
 import PasswordInput from './PasswordInput'
+import { isValidPhone } from '../lib/phone'
 
 export default function RegistrationForm({ role, title, roleLabel, afterPath }) {
   const { signUp } = useAuth()
@@ -27,8 +28,8 @@ export default function RegistrationForm({ role, title, roleLabel, afterPath }) 
       return
     }
 
-    if (phone && !/^[+\d][\d\s-]{6,}$/.test(phone.trim())) {
-      setError('Please enter a valid phone number (digits only, optionally starting with +).')
+    if (!isValidPhone(phone)) {
+      setError('Mobile number is required. Enter a valid number, for example 0977123456 or +260977123456.')
       return
     }
 
@@ -112,14 +113,18 @@ export default function RegistrationForm({ role, title, roleLabel, afterPath }) 
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Phone number</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Mobile number <span className="text-red-500">*</span></label>
           <input
             type="tel"
+            required
+            inputMode="tel"
+            autoComplete="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             placeholder="e.g. 0977123456"
           />
+          <p className="mt-1 text-xs text-gray-400">We need your mobile number so Campus Crib Admin can contact you when necessary.</p>
         </div>
 
         <div>

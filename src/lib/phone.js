@@ -4,6 +4,12 @@
 
 /** Strips everything except digits and a leading +, so tel:/sms: links
  * work even if the stored number has spaces/dashes/brackets. */
+export function isValidPhone(phone) {
+  if (!phone) return false
+  const digits = String(phone).replace(/[^\d]/g, '')
+  return digits.length >= 7 && digits.length <= 15
+}
+
 export function toUriPhone(phone) {
   if (!phone) return ''
   const trimmed = phone.trim()

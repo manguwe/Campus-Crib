@@ -5,67 +5,130 @@ import { logActivity } from '../lib/activityLog'
 import { claimReferralForUser } from '../lib/referralTracking'
 
 const AuthContext = createContext(undefined)
+const AUTH_TIMEOUT_MS = 12000
+const PROFILE_TIMEOUT_MS = 7000
+
+function withTimeout(promise, ms, message) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
+  ])
+}
+
+function timeoutError(message) {
+  const error = new Error(message)
+  error.name = 'CampusCribTimeoutError'
+  return error
+}
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
-  // "loading" covers the whole startup sequence: has Supabase told us yet
-  // whether there's an existing session, AND (if so) have we fetched the
-  // matching profiles row? Until both are done we don't know who's logged
-  // in or what role they have, so route protection can't decide anything.
+  // Startup must never depend indefinitely on a remote Supabase request.
+  // If Supabase is slow/unreachable, the UI falls back to a logged-out state
+  // instead of leaving every route on an infinite loading spinner.
   const [loading, setLoading] = useState(true)
 
   const loadProfile = useCallback(async (userId) => {
     if (!userId) {
       setProfile(null)
       setActivityIdentity({ userId: null, role: null })
-      return
+      return null
     }
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, name, role, phone, is_suspended, suspension_reason, suspended_until, created_at')
-      .eq('id', userId)
-      .single()
 
-    if (error) {
-      // Not fatal - e.g. the on_auth_user_created trigger hasn't finished
-      // yet on a brand-new signup. The caller can retry via refreshProfile().
-      console.error('[AuthContext] could not load profile:', error.message)
+    try {
+      // Phone is deliberately not selected directly after V6 privacy
+      // hardening. get_my_phone() returns only the current user's own phone.
+      const profileResult = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('id, name, role, is_suspended, suspension_reason, suspended_until, created_at')
+          .eq('id', userId)
+          .maybeSingle(),
+        PROFILE_TIMEOUT_MS,
+        'Profile request timed out',
+      )
+
+      if (profileResult.error) throw profileResult.error
+      if (!profileResult.data) {
+        setProfile(null)
+        setActivityIdentity({ userId, role: null })
+        return null
+      }
+
+      let phone = ''
+      try {
+        const phoneResult = await withTimeout(
+          supabase.rpc('get_my_phone'),
+          PROFILE_TIMEOUT_MS,
+          'Phone request timed out',
+        )
+        if (!phoneResult.error) phone = phoneResult.data || ''
+      } catch (phoneError) {
+        console.warn('[AuthContext] could not load own phone:', phoneError?.message || phoneError)
+      }
+
+      const nextProfile = { ...profileResult.data, phone }
+      setProfile(nextProfile)
+      setActivityIdentity({ userId, role: nextProfile.role })
+      return nextProfile
+    } catch (error) {
+      console.error('[AuthContext] could not load profile:', error?.message || error)
       setProfile(null)
       setActivityIdentity({ userId, role: null })
-    } else {
-      setProfile(data)
-      setActivityIdentity({ userId, role: data.role })
+      return null
     }
   }, [])
 
   useEffect(() => {
     let isMounted = true
 
-    // On first mount, ask the Supabase client for whatever session it
-    // already has. supabase-js persists sessions to localStorage and
-    // auto-refreshes expired tokens by default, so this is what makes
-    // "stay logged in after a page reload" work with zero extra code.
-    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+    async function processSession(nextSession) {
       if (!isMounted) return
-      setSession(initialSession)
-      await loadProfile(initialSession?.user?.id)
-      if (initialSession?.user?.id) await claimReferralForUser(initialSession.user.id)
-      if (isMounted) setLoading(false)
-    })
+      setSession(nextSession)
 
-    // Subscribe to every future auth change: sign in, sign out, token
-    // refresh, or the session arriving late (e.g. after clicking an email
-    // confirmation link in another tab).
+      await loadProfile(nextSession?.user?.id)
+      if (nextSession?.user?.id) {
+        // Best-effort attribution; never hold route rendering on referral work.
+        try {
+          await withTimeout(
+            claimReferralForUser(nextSession.user.id),
+            PROFILE_TIMEOUT_MS,
+            'Referral attribution timed out',
+          )
+        } catch (error) {
+          console.warn('[AuthContext] referral attribution skipped:', error?.message || error)
+        }
+      }
+
+      if (isMounted) setLoading(false)
+    }
+
+    // Initial session lookup happens outside onAuthStateChange, so it is safe
+    // to perform the follow-up profile query here.
+    withTimeout(supabase.auth.getSession(), AUTH_TIMEOUT_MS, 'Authentication startup timed out')
+      .then(({ data: { session: initialSession } }) => processSession(initialSession))
+      .catch((error) => {
+        console.warn('[AuthContext] startup session lookup failed:', error?.message || error)
+        if (isMounted) {
+          setSession(null)
+          setProfile(null)
+          setActivityIdentity({ userId: null, role: null })
+          setLoading(false)
+        }
+      })
+
+    // IMPORTANT: Supabase documents a deadlock risk when async Supabase
+    // calls are made directly inside this callback. Keep the callback tiny
+    // and move profile/referral work to the next task.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!isMounted) return
       setSession(newSession)
-      loadProfile(newSession?.user?.id).then(async () => {
-        if (newSession?.user?.id) await claimReferralForUser(newSession.user.id)
-      }).finally(() => {
-        if (isMounted) setLoading(false)
-      })
+      window.setTimeout(() => {
+        if (isMounted) processSession(newSession)
+      }, 0)
     })
 
     return () => {
@@ -75,43 +138,64 @@ export function AuthProvider({ children }) {
   }, [loadProfile])
 
   const signUp = useCallback(async ({ email, password, name, role, phone, termsAcceptedAt }) => {
-    // Everything in `data` here lands in auth.users.raw_user_meta_data,
-    // which the handle_new_user Postgres trigger reads to create the
-    // matching profiles (and, for landlords, landlord_profiles) row
-    // server-side. See 01_schema.sql / 04_auth_trigger_update.sql /
-    // 16_terms_accepted_at.sql (terms_accepted_at).
-    const result = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name, role, phone, terms_accepted_at: termsAcceptedAt } },
-    })
-    // role is already known from the caller here, so there's no need to
-    // wait on the profile row (which the trigger above creates
-    // separately) just to log this.
+    let result
+    try {
+      result = await withTimeout(
+        supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { name, role, phone, terms_accepted_at: termsAcceptedAt } },
+        }),
+        AUTH_TIMEOUT_MS,
+        'Registration request timed out',
+      )
+    } catch (error) {
+      return { data: null, error: timeoutError(error?.message || 'Registration request timed out') }
+    }
+
     if (!result.error) {
       logActivity('signup', { details: { role } })
-      if (result.data?.session?.user?.id) await claimReferralForUser(result.data.session.user.id, true)
+      if (result.data?.session?.user?.id) {
+        try {
+          await claimReferralForUser(result.data.session.user.id, true)
+        } catch {
+          // Attribution is non-critical to account creation.
+        }
+      }
     }
     return result
   }, [])
 
   const signIn = useCallback(async ({ email, password }) => {
-    const result = await supabase.auth.signInWithPassword({ email, password })
+    let result
+    try {
+      result = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+        AUTH_TIMEOUT_MS,
+        'Login request timed out',
+      )
+    } catch (error) {
+      return { data: null, error: timeoutError(error?.message || 'Login request timed out'), role: null }
+    }
+
     let role = null
     if (!result.error && result.data?.user) {
-      // Awaited here (unlike the fire-and-forget log insert itself)
-      // because the caller (Login.jsx) needs the role synchronously to
-      // redirect to the right dashboard - this is a single indexed
-      // lookup on a small table, not a meaningful delay.
-      const { data } = await supabase.from('profiles').select('role').eq('id', result.data.user.id).single()
-      role = data?.role ?? null
+      try {
+        const roleResult = await withTimeout(
+          supabase.from('profiles').select('role').eq('id', result.data.user.id).maybeSingle(),
+          PROFILE_TIMEOUT_MS,
+          'Role lookup timed out',
+        )
+        role = roleResult.data?.role ?? null
+      } catch (error) {
+        console.warn('[AuthContext] role lookup failed:', error?.message || error)
+      }
       logActivity('login', { details: { role } })
     }
     return { ...result, role }
   }, [])
 
   const signOut = useCallback(async () => {
-    // Capture role before signing out - profile is cleared right after.
     logActivity('logout', { details: { role: profile?.role ?? null } })
     await supabase.auth.signOut()
   }, [profile])

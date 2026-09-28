@@ -35,6 +35,7 @@ import Reservations from './pages/Reservations'
 import PreLaunch from './pages/PreLaunch'
 import Maintenance from './pages/Maintenance'
 import Messages from './pages/Messages'
+import CompletePhoneGate from './components/CompletePhoneGate'
 import PlatformModeGate from './components/PlatformModeGate'
 import { PlatformModeProvider } from './context/PlatformModeContext'
 
@@ -77,6 +78,7 @@ function App() {
       <Navbar />
 
       <PlatformModeGate>
+      <CompletePhoneGate>
       <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12">
         <ErrorBoundary>
         <Routes>
@@ -180,6 +182,7 @@ function App() {
         </Routes>
         </ErrorBoundary>
       </main>
+      </CompletePhoneGate>
 
       </PlatformModeGate>
       <Footer />
