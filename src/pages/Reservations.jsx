@@ -16,12 +16,57 @@ export default function Reservations() {
 
   async function load() {
     setLoading(true); setError('')
-    let query = supabase.from('reservations').select('id, property_id, student_id, move_in_date, move_out_date, occupants, status, student_note, admin_note, created_at, properties(title, price, currency, landlord_id)').order('created_at', { ascending: false })
-    if (role === 'student') query = query.eq('student_id', user.id)
-    if (role === 'landlord') query = supabase.from('reservations').select('id, property_id, student_id, move_in_date, move_out_date, occupants, status, student_note, admin_note, created_at, properties!inner(title, price, currency, landlord_id)').eq('properties.landlord_id', user.id).order('created_at', { ascending: false })
-    const { data, error: queryError } = await query
-    if (queryError) setError(formatSupabaseError(queryError, 'Could not load reservations.'))
-    setRows(data || []); setLoading(false)
+    // Do not embed properties here. The schema contains two relationships
+    // between reservations and properties (reservations.property_id and
+    // properties.reservation_hold_id), so PostgREST cannot safely infer which
+    // relationship `properties(...)` refers to. Load the two resources
+    // separately and join them in the client instead.
+    let reservationQuery = supabase
+      .from('reservations')
+      .select('id, property_id, student_id, move_in_date, move_out_date, occupants, status, student_note, admin_note, created_at')
+      .order('created_at', { ascending: false })
+
+    if (role === 'student') reservationQuery = reservationQuery.eq('student_id', user.id)
+
+    const { data: reservationData, error: reservationError } = await reservationQuery
+    if (reservationError) {
+      setError(formatSupabaseError(reservationError, 'Could not load reservations.'))
+      setRows([])
+      setLoading(false)
+      return
+    }
+
+    const reservations = reservationData || []
+    const propertyIds = [...new Set(reservations.map(r => r.property_id).filter(Boolean))]
+
+    if (!propertyIds.length) {
+      setRows([])
+      setLoading(false)
+      return
+    }
+
+    let propertyQuery = supabase
+      .from('properties')
+      .select('id, title, price, currency, landlord_id')
+      .in('id', propertyIds)
+
+    if (role === 'landlord') propertyQuery = propertyQuery.eq('landlord_id', user.id)
+
+    const { data: propertyData, error: propertyError } = await propertyQuery
+    if (propertyError) {
+      setError(formatSupabaseError(propertyError, 'Could not load reservation listings.'))
+      setRows([])
+      setLoading(false)
+      return
+    }
+
+    const propertyMap = Object.fromEntries((propertyData || []).map(p => [p.id, p]))
+    const joined = reservations
+      .filter(r => role !== 'landlord' || propertyMap[r.property_id])
+      .map(r => ({ ...r, properties: propertyMap[r.property_id] || null }))
+
+    setRows(joined)
+    setLoading(false)
   }
 
   useEffect(() => { if (user) load() }, [user?.id, role])

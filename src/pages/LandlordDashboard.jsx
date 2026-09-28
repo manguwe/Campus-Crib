@@ -38,7 +38,7 @@ export default function LandlordDashboard() {
           .from('landlord_profiles')
           .select('verification_status')
           .eq('id', user.id)
-          .single(),
+          .maybeSingle(),
         // RLS already restricts this to "approved OR mine" - the .eq below
         // is just to skip fetching other landlords' approved listings too,
         // since this page only cares about the current landlord's own.

@@ -40,7 +40,7 @@ export default function LandlordVerification() {
           'id, verification_status, id_document_url, id_number, id_document_front_url, id_document_back_url, proof_of_ownership_url, contact_phone, contact_email, contact_whatsapp, verified_at, rejection_reason, created_at'
         )
         .eq('id', user.id)
-        .single(),
+        .maybeSingle(),
       supabase.rpc('get_private_landlord_phone', { p_landlord_id: user.id }),
     ])
 
@@ -50,18 +50,41 @@ export default function LandlordVerification() {
       return
     }
 
-    setRecord(data)
+    let verificationRecord = data
+
+    // Older landlord accounts can exist without a landlord_profiles row
+    // (for example, if the email-confirmation trigger was introduced after
+    // the account was created). Repair that 1:1 record instead of surfacing
+    // a PostgREST single-object error to the user.
+    if (!verificationRecord) {
+      const { data: createdRecord, error: createError } = await supabase
+        .from('landlord_profiles')
+        .insert({ id: user.id })
+        .select(
+          'id, verification_status, id_document_url, id_number, id_document_front_url, id_document_back_url, proof_of_ownership_url, contact_phone, contact_email, contact_whatsapp, verified_at, rejection_reason, created_at'
+        )
+        .single()
+
+      if (createError) {
+        setError(formatSupabaseError(createError, 'Could not create your verification record.'))
+        setLoading(false)
+        return
+      }
+      verificationRecord = createdRecord
+    }
+
+    setRecord(verificationRecord)
 
     // Pre-fill from whatever's already on file - their own previous
     // submission first, falling back to their account phone/email for a
     // first-time submission.
-    const prefillCall = data.contact_phone || profileData || ''
+    const prefillCall = verificationRecord.contact_phone || profileData || ''
     setForm({
-      idNumber: data.id_number || '',
+      idNumber: verificationRecord.id_number || '',
       callNumber: prefillCall,
-      email: data.contact_email || user.email || '',
-      whatsappNumber: data.contact_whatsapp || prefillCall,
-      whatsappSameAsCall: !data.contact_whatsapp || data.contact_whatsapp === prefillCall,
+      email: verificationRecord.contact_email || user.email || '',
+      whatsappNumber: verificationRecord.contact_whatsapp || prefillCall,
+      whatsappSameAsCall: !verificationRecord.contact_whatsapp || verificationRecord.contact_whatsapp === prefillCall,
     })
 
     // Only auto-open the form when there's genuinely nothing submitted
@@ -69,8 +92,8 @@ export default function LandlordVerification() {
     // to fix/resubmit. An approved landlord, or one who's already
     // submitted and is just waiting on review, sees the status view
     // instead - not re-prompted to redo anything.
-    const hasSubmittedAnything = Boolean(data.id_document_url || data.id_document_front_url)
-    setShowForm(data.verification_status === 'rejected' || !hasSubmittedAnything)
+    const hasSubmittedAnything = Boolean(verificationRecord.id_document_url || verificationRecord.id_document_front_url)
+    setShowForm(verificationRecord.verification_status === 'rejected' || !hasSubmittedAnything)
 
     setLoading(false)
   }
