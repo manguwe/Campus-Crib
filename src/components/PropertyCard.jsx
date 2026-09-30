@@ -7,6 +7,7 @@ import { directionsUrl } from '../lib/googleMaps'
 import { useCampuses } from '../context/CampusesContext'
 import RatingSummary from './RatingSummary'
 import AvailabilityStatusBadge from './AvailabilityStatusBadge'
+import useScrollReveal from '../hooks/useScrollReveal'
 
 export default function PropertyCard({
   property,
@@ -26,6 +27,7 @@ export default function PropertyCard({
   const amenities = property.amenities || []
   const shownAmenities = amenities.slice(0, 4)
   const extraCount = amenities.length - shownAmenities.length
+  const [cardRef, isVisible] = useScrollReveal()
 
   function handleHeartClick(e) {
     e.preventDefault()
@@ -42,8 +44,9 @@ export default function PropertyCard({
 
   return (
     <Link
+      ref={cardRef}
       to={`/properties/${property.id}`}
-      className="group block bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-150 relative"
+      className={`group property-card-reveal block bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-150 relative ${isVisible ? 'property-card-reveal-visible' : ''}`}
     >
       <div className="h-40 bg-gray-100 relative overflow-hidden">
         {thumbnailUrl ? (
@@ -79,7 +82,7 @@ export default function PropertyCard({
         )}
       </div>
 
-      <div className="p-4">
+      <div className="property-card-details p-4">
         <div className="flex items-center gap-2 flex-wrap mb-2">
           {buildingLabel && (
             <span className="text-xs font-medium text-primary bg-primary/10 rounded-full px-2.5 py-1">

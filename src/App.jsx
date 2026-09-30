@@ -34,6 +34,7 @@ import Invite from './pages/Invite'
 import Reservations from './pages/Reservations'
 import PreLaunch from './pages/PreLaunch'
 import Maintenance from './pages/Maintenance'
+import SplashScreen from './components/SplashScreen'
 import Messages from './pages/Messages'
 import CompletePhoneGate from './components/CompletePhoneGate'
 import PlatformModeGate from './components/PlatformModeGate'
@@ -74,6 +75,7 @@ function App() {
   return (
     <PlatformModeProvider>
     <div className="min-h-screen bg-background flex flex-col">
+      <SplashScreen />
       <ScrollToTop />
       <Navbar />
 

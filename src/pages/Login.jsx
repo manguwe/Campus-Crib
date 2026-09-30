@@ -46,13 +46,22 @@ export default function Login() {
   }
 
   return (
+    <div className="login-page-atmosphere min-h-[calc(100vh-8rem)] -mx-4 sm:-mx-6 -my-8 sm:-my-12 px-4 sm:px-6 py-10 sm:py-16 flex items-center justify-center">
+      <div className="login-page-glow login-page-glow-one" aria-hidden="true" />
+      <div className="login-page-glow login-page-glow-two" aria-hidden="true" />
+      <div className="login-page-particles" aria-hidden="true">
+        {Array.from({ length: 12 }, (_, index) => <span key={index} />)}
+      </div>
     <form
       onSubmit={handleSubmit}
-      className="max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 p-6"
+      className="login-panel login-panel-aurora max-w-md mx-auto rounded-2xl p-6"
     >
-      <h2 className="text-lg font-semibold text-primary mb-5">Log in</h2>
+      <div className="login-heading">
+        <div className="login-lamp" aria-hidden="true"><span /></div>
+        <h2 className="text-lg font-semibold text-primary mb-5">Welcome Back</h2>
+      </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 login-fields">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input
@@ -84,8 +93,8 @@ export default function Login() {
 
         <button
           type="submit"
+          className="login-submit w-full rounded-lg bg-primary text-white py-2 text-sm font-medium hover:bg-primary-dark transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
           disabled={submitting}
-          className="w-full rounded-lg bg-primary text-white py-2 text-sm font-medium hover:bg-primary-dark transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
         >
           {submitting ? 'Logging in…' : 'Log in'}
         </button>
@@ -102,5 +111,6 @@ export default function Login() {
         </Link>
       </p>
     </form>
+    </div>
   )
 }

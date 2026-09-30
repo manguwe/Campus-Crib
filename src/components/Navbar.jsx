@@ -49,14 +49,17 @@ export default function Navbar() {
 
   return (
     <nav className="w-full border-b border-gray-200 bg-white sticky top-0 z-30">
-      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-        <Link to="/" onClick={closeMenu} className="shrink-0 flex items-center gap-2">
-          <img src={logoIcon} alt="" className="h-9 w-auto" />
-          <span className="font-semibold text-primary text-lg tracking-tight">Campus Crib</span>
-        </Link>
+      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3 relative">
+        <div className="brand-cluster shrink-0 flex items-center gap-2">
+          <Link to="/" onClick={closeMenu} className="flex-shrink-0">
+            <img src={logoIcon} alt="" className="h-9 w-auto" />
+          </Link>
+        </div>
 
-        {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-4 text-sm">
+        <div className="hidden md:flex flex-1 items-center justify-end gap-4 text-sm">
+          <span className="font-semibold text-primary text-lg tracking-tight campus-logo-loop pointer-events-none">Campus Crib</span>
+
+          <div className="flex items-center gap-4">
           {showBrowseLink && (
             <Link to="/browse" className={navLinkClass('/browse')}>
               Browse
@@ -106,6 +109,7 @@ export default function Navbar() {
               </button>
             </>
           )}
+          </div>
         </div>
 
         {/* Mobile: bell (if logged in) + hamburger toggle */}

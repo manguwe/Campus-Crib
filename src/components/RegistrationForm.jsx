@@ -94,7 +94,7 @@ export default function RegistrationForm({ role, title, roleLabel, afterPath }) 
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 p-6"
+      className="login-panel login-panel-aurora max-w-md mx-auto rounded-2xl p-6"
     >
       <h2 className="text-lg font-semibold text-primary mb-1">{title}</h2>
       <p className="text-sm text-gray-500 mb-5">Registering as a {roleLabel.toLowerCase()}.</p>

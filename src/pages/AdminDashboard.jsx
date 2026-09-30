@@ -19,11 +19,11 @@ import AdminAccessRequests from '../components/admin/AdminAccessRequests'
 import AdminReservations from '../components/admin/AdminReservations'
 
 const TABS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'traffic', label: 'Traffic' },
+  { id: 'overview', label: 'Overview', priority: 'hero' },
+  { id: 'traffic', label: 'Traffic', priority: 'hero' },
   { id: 'referrals', label: 'Referrals' },
   { id: 'platform', label: 'Platform mode' },
-  { id: 'readiness', label: 'Launch readiness' },
+  { id: 'readiness', label: 'Launch readiness', priority: 'hero' },
   { id: 'ai-usage', label: 'AI Usage' },
   { id: 'verifications', label: 'Landlord verifications', countKey: 'verifications' },
   { id: 'properties', label: 'Properties', countKey: 'properties' },
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 -mb-px whitespace-nowrap shrink-0 ${
+              className={`admin-tab ${t.priority === 'hero' ? 'admin-tab-hero' : ['referrals','platform','ai-usage','verifications','properties','access','reservations'].includes(t.id) ? 'admin-tab-medium' : 'admin-tab-small'} flex items-center gap-1.5 py-2 text-sm font-medium border-b-2 -mb-px whitespace-nowrap shrink-0 ${
                 tab === t.id
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:text-gray-700'

@@ -55,7 +55,7 @@ export default function PWAInstallButton({ mobile = false }) {
         onClick={install}
         className={mobile
           ? 'w-full flex items-center gap-2 py-2 text-left text-gray-700 hover:text-primary'
-          : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/20 text-primary text-sm font-medium hover:bg-primary/5'}
+          : 'pwa-install-button inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/20 text-primary text-sm font-semibold shadow-[0_0_0_rgba(15,157,140,0.15)] transition-all duration-300 hover:bg-primary/5'}
       >
         {ios ? <Share2 size={16} /> : <Download size={16} />}
         Install Campus Crib
