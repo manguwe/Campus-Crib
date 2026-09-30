@@ -366,6 +366,14 @@ body {
   }
 }
 
+@media (max-width: 767px) {
+  .campus-logo-loop {
+    position: static;
+    transform: none;
+    animation: none;
+  }
+}
+
 .pwa-install-button {
   position: relative;
   background: rgba(15, 157, 140, 0.08);

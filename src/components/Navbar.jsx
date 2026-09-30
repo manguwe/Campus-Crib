@@ -54,11 +54,10 @@ export default function Navbar() {
           <Link to="/" onClick={closeMenu} className="flex-shrink-0">
             <img src={logoIcon} alt="" className="h-9 w-auto" />
           </Link>
+          <span className="font-semibold text-primary text-lg tracking-tight campus-logo-loop pointer-events-none">Campus Crib</span>
         </div>
 
         <div className="hidden md:flex flex-1 items-center justify-end gap-4 text-sm">
-          <span className="font-semibold text-primary text-lg tracking-tight campus-logo-loop pointer-events-none">Campus Crib</span>
-
           <div className="flex items-center gap-4">
           {showBrowseLink && (
             <Link to="/browse" className={navLinkClass('/browse')}>
