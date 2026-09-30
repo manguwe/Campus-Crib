@@ -370,7 +370,19 @@ body {
   .campus-logo-loop {
     position: static;
     transform: none;
-    animation: none;
+    animation: campus-logo-glow-pulse 4s ease-in-out infinite;
+    will-change: filter, text-shadow;
+  }
+
+  @keyframes campus-logo-glow-pulse {
+    0%, 100% {
+      filter: brightness(1);
+      text-shadow: 0 0 0 rgba(15, 157, 140, 0);
+    }
+    50% {
+      filter: brightness(1.12);
+      text-shadow: 0 0 8px rgba(15, 157, 140, 0.24), 0 0 18px rgba(15, 157, 140, 0.12);
+    }
   }
 }
 
