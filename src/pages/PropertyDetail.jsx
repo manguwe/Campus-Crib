@@ -117,9 +117,9 @@ export default function PropertyDetail() {
               className="group rounded-xl overflow-hidden border border-gray-200 relative"
             >
               {m.media_type === 'video' ? (
-                <video src={m.url} className="w-full h-40 object-cover pointer-events-none" />
+                <video src={m.url} preload="none" muted playsInline className="w-full h-40 object-cover pointer-events-none" />
               ) : (
-                <img src={m.url} alt={property.title} className="w-full h-40 object-cover" />
+                <img src={m.url} alt={property.title} loading="lazy" decoding="async" className="w-full h-40 object-cover" />
               )}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                 <Expand

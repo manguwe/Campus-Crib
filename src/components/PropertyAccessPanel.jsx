@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import { formatSupabaseError } from '../lib/errorMessages'
+import { uploadPaymentProof, discardPrivateUpload } from '../lib/storage'
 import GoogleMapPin from './GoogleMapPin'
 
 export default function PropertyAccessPanel({ property }) {
@@ -40,12 +41,11 @@ export default function PropertyAccessPanel({ property }) {
     e.preventDefault(); setError('')
     if (!proof) return setError('Choose your payment proof first.')
     setSubmitting(true)
-    const ext = proof.name.split('.').pop()?.toLowerCase() || 'file'
-    const path = `${user.id}/${property.id}/${Date.now()}.${ext}`
-    const { error: uploadError } = await supabase.storage.from('payment-proofs').upload(path, proof, { upsert: false })
-    if (uploadError) { setSubmitting(false); setError(formatSupabaseError(uploadError, 'Could not upload your payment proof.')); return }
+    let path
+    try { path = await uploadPaymentProof(proof, property.id) }
+    catch (uploadError) { setSubmitting(false); setError(formatSupabaseError(uploadError, 'Could not upload your payment proof.')); return }
     const { data: requestId, error: requestError } = await supabase.rpc('create_property_access_request', { p_property_id: property.id, p_proof_path: path })
-    if (requestError) { await supabase.storage.from('payment-proofs').remove([path]); setSubmitting(false); setError(formatSupabaseError(requestError, 'Could not submit the payment request.')); return }
+    if (requestError) { try { await discardPrivateUpload(path, 'payment-proof') } catch {} setSubmitting(false); setError(formatSupabaseError(requestError, 'Could not submit the payment request.')); return }
     setRequest({ id: requestId, amount: fee, currency: feeCurrency, proof_path: path, status: 'pending', submitted_at: new Date().toISOString() })
     setProof(null); setSubmitting(false)
   }

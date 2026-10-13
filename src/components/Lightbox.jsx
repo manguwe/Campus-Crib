@@ -150,6 +150,7 @@ export default function Lightbox({ items, initialIndex = 0, onClose }) {
             key={item.url}
             src={item.url}
             controls
+            preload="metadata"
             autoPlay
             muted
             loop

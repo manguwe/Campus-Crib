@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Loader2, CreditCard, Phone, Mail, MessageCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
-import { uploadLandlordDocument, getIdDocumentSignedUrl } from '../lib/storage'
+import { uploadLandlordDocument, getIdDocumentSignedUrl, discardPrivateUpload } from '../lib/storage'
 import { STATUS_BADGE_STYLES } from '../lib/constants'
 import { formatSupabaseError } from '../lib/errorMessages'
 import PageLoading from '../components/ui/PageLoading'
@@ -136,12 +136,14 @@ export default function LandlordVerification() {
     }
 
     setSubmitting(true)
+    const uploadedRefs = []
     try {
-      const [frontPath, backPath, proofPath] = await Promise.all([
-        uploadLandlordDocument(frontFile, user.id, 'front'),
-        uploadLandlordDocument(backFile, user.id, 'back'),
-        proofFile ? uploadLandlordDocument(proofFile, user.id, 'proof') : Promise.resolve(null),
-      ])
+      const frontPath = await uploadLandlordDocument(frontFile, user.id, 'front')
+      uploadedRefs.push(frontPath)
+      const backPath = await uploadLandlordDocument(backFile, user.id, 'back')
+      uploadedRefs.push(backPath)
+      const proofPath = proofFile ? await uploadLandlordDocument(proofFile, user.id, 'proof') : null
+      if (proofPath) uploadedRefs.push(proofPath)
 
       // verification_status is forced back to 'pending' here (and
       // verified_at/verified_by/rejection_reason cleared server-side) by
@@ -170,6 +172,7 @@ export default function LandlordVerification() {
       setProofFile(null)
       setShowForm(false)
     } catch (err) {
+      await Promise.all(uploadedRefs.map((reference) => discardPrivateUpload(reference, 'landlord-document').catch(() => {})))
       setError(formatSupabaseError(err, 'Could not submit your verification. Please try again.'))
     } finally {
       setSubmitting(false)
