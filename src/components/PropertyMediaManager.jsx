@@ -19,7 +19,7 @@ export default function PropertyMediaManager({ propertyId, landlordId }) {
     setLoading(true)
     const { data, error } = await supabase
       .from('property_media')
-      .select('id, media_type, url, sort_order')
+      .select('id, media_type, url, sort_order, storage_file_id')
       .eq('property_id', propertyId)
       .order('sort_order', { ascending: true })
     if (error) setError(formatSupabaseError(error, 'Could not load media.'))
@@ -57,12 +57,13 @@ export default function PropertyMediaManager({ propertyId, landlordId }) {
       let nextSortOrder = media.length
       for (const file of files) {
         const isVideo = file.type.startsWith('video/')
-        const url = await uploadPropertyMediaFile(file, landlordId, propertyId)
+        const uploaded = await uploadPropertyMediaFile(file, landlordId, propertyId)
 
         const { error: insertError } = await supabase.from('property_media').insert({
           property_id: propertyId,
           media_type: isVideo ? 'video' : 'image',
-          url,
+          url: uploaded.url,
+          storage_file_id: uploaded.fileId,
           sort_order: nextSortOrder,
         })
         if (insertError) throw insertError
@@ -81,9 +82,13 @@ export default function PropertyMediaManager({ propertyId, landlordId }) {
     if (!window.confirm('Remove this file?')) return
     setError('')
     try {
-      await deletePropertyMediaFile(item.url)
-      const { error: deleteError } = await supabase.from('property_media').delete().eq('id', item.id)
-      if (deleteError) throw deleteError
+      if (item.storage_file_id) {
+        await deletePropertyMediaFile(item)
+      } else {
+        await deletePropertyMediaFile(item.url)
+        const { error: deleteError } = await supabase.from('property_media').delete().eq('id', item.id)
+        if (deleteError) throw deleteError
+      }
       setMedia((prev) => prev.filter((m) => m.id !== item.id))
     } catch (err) {
       setError(formatSupabaseError(err, 'Could not remove that file.'))
@@ -117,7 +122,7 @@ export default function PropertyMediaManager({ propertyId, landlordId }) {
                 className="block w-full h-28"
               >
                 {item.media_type === 'video' ? (
-                  <video src={item.url} className="w-full h-28 object-cover pointer-events-none" />
+                  <video src={item.url} preload="none" muted playsInline className="w-full h-28 object-cover pointer-events-none" />
                 ) : (
                   <img src={item.url} alt="" className="w-full h-28 object-cover" />
                 )}

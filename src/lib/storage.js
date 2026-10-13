@@ -1,81 +1,127 @@
 import { supabase } from './supabaseClient'
 
-function uniqueFilename(file) {
-  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'bin'
-  const random = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)
-  return `${Date.now()}-${random}.${ext}`
-}
+const PRIVATE_MARKER = 'ikfile:'
 
-// ---------------------------------------------------------------------
-// landlord-documents (private bucket)
-// ---------------------------------------------------------------------
-
-/**
- * Uploads an ID document to the private landlord-documents bucket under
- * the landlord's own folder. Returns the storage PATH (not a public URL -
- * the bucket is private, so a plain URL wouldn't work). Store this path
- * in landlord_profiles.id_document_url; use getIdDocumentSignedUrl() to
- * actually view/download it later.
- */
-export async function uploadIdDocument(file, userId) {
-  const path = `${userId}/${uniqueFilename(file)}`
-  const { error } = await supabase.storage
-    .from('landlord-documents')
-    .upload(path, file, { upsert: false, cacheControl: '3600' })
+async function callMediaFunction(formData) {
+  const { data, error } = await supabase.functions.invoke('imagekit-media', { body: formData })
   if (error) throw error
-  return path
+  if (data?.error) throw new Error(data.error)
+  return data
 }
 
-/**
- * Same bucket/path/signed-URL pattern as uploadIdDocument, parameterized
- * by document type so callers don't need three near-identical functions.
- * `docType` is just a folder-naming hint (e.g. 'front', 'back', 'proof')
- * to keep a landlord's documents distinguishable in storage - it isn't
- * validated against anything.
- */
-export async function uploadLandlordDocument(file, userId, docType) {
-  const path = `${userId}/${docType}-${uniqueFilename(file)}`
-  const { error } = await supabase.storage
-    .from('landlord-documents')
-    .upload(path, file, { upsert: false, cacheControl: '3600' })
-  if (error) throw error
-  return path
+// Longest side in pixels and JPEG quality used when shrinking photos before upload.
+// Property photos are shrunk harder; ID documents and payment receipts keep more detail so text stays readable.
+const COMPRESSION = {
+  'property-media': { maxSide: 1600, quality: 0.8 },
+  'landlord-document': { maxSide: 2000, quality: 0.85 },
+  'payment-proof': { maxSide: 2000, quality: 0.85 },
 }
 
-/** Creates a short-lived signed URL to view a private ID document. */
-export async function getIdDocumentSignedUrl(path, expiresInSeconds = 300) {
-  const { data, error } = await supabase.storage
-    .from('landlord-documents')
-    .createSignedUrl(path, expiresInSeconds)
-  if (error) throw error
-  return data.signedUrl
+// Shrinks a photo in the browser. Videos, PDFs, GIFs and anything it cannot read are returned unchanged.
+// If the result would not be smaller, the original file is kept.
+async function compressImage(file, { maxSide, quality } = { maxSide: 1600, quality: 0.8 }) {
+  const type = file?.type || ''
+  if (!type.startsWith('image/') || type === 'image/gif' || type === 'image/svg+xml') return file
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+    const width = Math.max(1, Math.round(bitmap.width * scale))
+    const height = Math.max(1, Math.round(bitmap.height * scale))
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = '#ffffff' // JPEG has no transparency
+    ctx.fillRect(0, 0, width, height)
+    ctx.drawImage(bitmap, 0, 0, width, height)
+    if (bitmap.close) bitmap.close()
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
+    if (!blob || blob.size >= file.size) return file
+    const name = (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg'
+    return new File([blob], name, { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
 }
 
-// ---------------------------------------------------------------------
-// property-media (public bucket)
-// ---------------------------------------------------------------------
+async function upload(file, purpose, { propertyId } = {}) {
+  const prepared = await compressImage(file, COMPRESSION[purpose])
+  const body = new FormData()
+  body.append('action', 'upload')
+  body.append('purpose', purpose)
+  if (propertyId) body.append('propertyId', propertyId)
+  body.append('file', prepared, prepared.name)
+  return callMediaFunction(body)
+}
 
-/**
- * Uploads one image/video to the public property-media bucket under
- * {landlordId}/{propertyId}/..., and returns its permanent public URL -
- * this is what gets stored directly in property_media.url.
- */
+export async function uploadIdDocument(file) {
+  const result = await upload(file, 'landlord-document')
+  return result.reference
+}
+
+export async function uploadLandlordDocument(file) {
+  const result = await upload(file, 'landlord-document')
+  return result.reference
+}
+
+export async function getIdDocumentSignedUrl(reference, expiresInSeconds = 300) {
+  if (!reference?.startsWith(PRIVATE_MARKER)) {
+    const { data, error } = await supabase.storage.from('landlord-documents').createSignedUrl(reference, expiresInSeconds)
+    if (error) throw error
+    return data.signedUrl
+  }
+  const body = new FormData()
+  body.append('action', 'view')
+  body.append('purpose', 'landlord-document')
+  body.append('reference', reference)
+  const result = await callMediaFunction(body)
+  return result.url
+}
+
+export async function discardPrivateUpload(reference, purpose) {
+  if (!reference?.startsWith(PRIVATE_MARKER)) return
+  const body = new FormData()
+  body.append('action', 'discard-private-upload')
+  body.append('purpose', purpose)
+  body.append('reference', reference)
+  await callMediaFunction(body)
+}
+
+export async function getPaymentProofSignedUrl(reference) {
+  if (!reference?.startsWith(PRIVATE_MARKER)) {
+    const { data, error } = await supabase.storage.from('payment-proofs').createSignedUrl(reference, 600)
+    if (error) throw error
+    return data.signedUrl
+  }
+  const body = new FormData()
+  body.append('action', 'view')
+  body.append('purpose', 'payment-proof')
+  body.append('reference', reference)
+  const result = await callMediaFunction(body)
+  return result.url
+}
+
+export async function uploadPaymentProof(file, propertyId) {
+  const result = await upload(file, 'payment-proof', { propertyId })
+  return result.reference
+}
+
 export async function uploadPropertyMediaFile(file, landlordId, propertyId) {
-  const path = `${landlordId}/${propertyId}/${uniqueFilename(file)}`
-  const { error } = await supabase.storage
-    .from('property-media')
-    .upload(path, file, { upsert: false, cacheControl: '3600' })
-  if (error) throw error
-
-  const { data } = supabase.storage.from('property-media').getPublicUrl(path)
-  return data.publicUrl
+  const result = await upload(file, 'property-media', { propertyId })
+  return { url: result.url, fileId: result.fileId }
 }
 
-/** Deletes a property-media file given its stored public URL. */
-export async function deletePropertyMediaFile(publicUrl) {
+export async function deletePropertyMediaFile(item) {
+  if (item?.storage_file_id) {
+    const body = new FormData()
+    body.append('action', 'delete-property-media')
+    body.append('mediaId', item.id)
+    return callMediaFunction(body)
+  }
+  const publicUrl = typeof item === 'string' ? item : item?.url
   const marker = '/object/public/property-media/'
-  const idx = publicUrl.indexOf(marker)
-  if (idx === -1) return // not a recognizable path in this bucket - nothing to do
+  const idx = publicUrl?.indexOf(marker) ?? -1
+  if (idx === -1) return
   const path = decodeURIComponent(publicUrl.slice(idx + marker.length))
   const { error } = await supabase.storage.from('property-media').remove([path])
   if (error) throw error
