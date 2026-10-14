@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import {
+  repairStaleSubscription,
   getPlatformState,
   getSubscriptionStatus,
   subscribeToPush,
@@ -29,8 +30,15 @@ export function usePushNotifications() {
   }, [])
 
   useEffect(() => {
-    refresh()
-  }, [refresh])
+    let cancelled = false
+    ;(async () => {
+      if (user?.id) await repairStaleSubscription(user.id)
+      if (!cancelled) refresh()
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [refresh, user?.id])
 
   async function enable() {
     if (!user) return

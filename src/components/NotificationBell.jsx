@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bell, Megaphone, MessageCircle, PhoneCall, BellRing } from 'lucide-react'
+import { usePushNotifications } from '../hooks/usePushNotifications'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 
@@ -9,6 +10,16 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const [toast, setToast] = useState(null)
   const containerRef = useRef(null)
+  const { platformState, permission, loading: pushLoading, error: pushError, enable: enablePush } = usePushNotifications()
+  const [enablingPush, setEnablingPush] = useState(false)
+  const canPromptPush = !pushLoading && permission === 'default' && platformState === 'ready'
+  const needsIosInstall = !pushLoading && permission === 'default' && platformState === 'ios-needs-install'
+
+  async function handleEnablePush() {
+    setEnablingPush(true)
+    await enablePush()
+    setEnablingPush(false)
+  }
 
   async function loadNotifications() {
     const { data, error } = await supabase
@@ -124,6 +135,9 @@ export default function NotificationBell() {
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
+        {unreadCount === 0 && canPromptPush && (
+          <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-white" aria-hidden="true" />
+        )}
       </button>
 
       {open && (
@@ -136,6 +150,31 @@ export default function NotificationBell() {
               </button>
             )}
           </div>
+
+          {(canPromptPush || needsIosInstall) && (
+            <div className="px-4 py-3 bg-primary/5 border-b border-primary/10">
+              <p className="text-sm font-medium text-gray-900">Get alerts on your phone</p>
+              {needsIosInstall ? (
+                <p className="text-xs text-gray-600 mt-1">
+                  On iPhone, first add Campus Crib to your Home Screen (Share, then Add to Home Screen), open it from there, and turn on notifications.
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Turn on notifications to hear about messages, calls and updates even when the site is closed.
+                  </p>
+                  {pushError && <p className="text-xs text-red-600 mt-1">{pushError}</p>}
+                  <button
+                    onClick={handleEnablePush}
+                    disabled={enablingPush}
+                    className="mt-2 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary-dark transition-colors duration-150 disabled:opacity-60"
+                  >
+                    {enablingPush ? 'Enabling…' : 'Enable notifications'}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
