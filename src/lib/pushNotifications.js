@@ -62,6 +62,54 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
 }
 
+/** True when an existing browser subscription was created with the SAME public key the site uses now.
+ * After the VAPID keys changed, old subscriptions no longer match and cannot receive pushes. If the browser
+ * does not expose the key, we cannot tell, so the subscription is left alone. */
+function keysMatch(subscription, vapidPublicKey) {
+  try {
+    const current = subscription?.options?.applicationServerKey
+    if (!current) return true
+    const a = new Uint8Array(current)
+    const b = urlBase64ToUint8Array(vapidPublicKey)
+    return a.length === b.length && a.every((value, i) => value === b[i])
+  } catch {
+    return true
+  }
+}
+
+/** Silently replaces a stale subscription (made with an old key) with a fresh one. Only runs when the user
+ * has ALREADY allowed notifications and a subscription exists, so it never shows a permission prompt and
+ * never re-enables someone who turned notifications off. Returns true if it replaced one. */
+export async function repairStaleSubscription(userId) {
+  try {
+    const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+    if (!vapidPublicKey || !userId || getPlatformState() !== 'ready') return false
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false
+    const registration = await navigator.serviceWorker.getRegistration()
+    const existing = await registration?.pushManager.getSubscription()
+    if (!existing || keysMatch(existing, vapidPublicKey)) return false
+
+    const staleEndpoint = existing.endpoint
+    await existing.unsubscribe()
+    await supabase.from('push_subscriptions').delete().eq('endpoint', staleEndpoint)
+
+    const fresh = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+    })
+    const json = fresh.toJSON()
+    await supabase.from('push_subscriptions').insert({
+      user_id: userId,
+      endpoint: json.endpoint,
+      p256dh: json.keys.p256dh,
+      auth_key: json.keys.auth,
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Requests permission (if not already decided) and subscribes via the
  * browser's PushManager, saving the subscription to push_subscriptions.
  * Returns 'granted', 'denied', or throws on an unexpected failure. */
@@ -84,6 +132,14 @@ export async function subscribeToPush(userId) {
   if (!registration.pushManager) {
     throw new Error('Push notifications are not supported by this browser.')
   }
+  // A subscription made with an old key makes subscribe() fail, so remove it first.
+  const existing = await registration.pushManager.getSubscription()
+  if (existing && !keysMatch(existing, vapidPublicKey)) {
+    const staleEndpoint = existing.endpoint
+    await existing.unsubscribe()
+    await supabase.from('push_subscriptions').delete().eq('endpoint', staleEndpoint)
+  }
+
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
