@@ -1,6 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell, Megaphone, MessageCircle, PhoneCall, BellRing } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Bell, Megaphone, MessageCircle, PhoneCall, BellRing, Volume2, VolumeX } from 'lucide-react'
 import { usePushNotifications } from '../hooks/usePushNotifications'
+import { getSubscriptionStatus } from '../lib/pushNotifications'
+import {
+  flashTitle,
+  isSoundMuted,
+  playChime,
+  setSoundMuted,
+  startRing,
+  stopRing,
+  unlockAudioOnFirstInteraction,
+} from '../lib/alertSound'
+
+// The bell can be mounted twice (desktop and mobile navbars); this makes sure one notification only alerts once.
+const alertedIds = new Set()
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 
@@ -14,6 +28,33 @@ export default function NotificationBell() {
   const [enablingPush, setEnablingPush] = useState(false)
   const canPromptPush = !pushLoading && permission === 'default' && platformState === 'ready'
   const needsIosInstall = !pushLoading && permission === 'default' && platformState === 'ios-needs-install'
+
+  const navigate = useNavigate()
+  const [incomingCall, setIncomingCall] = useState(null)
+  const [soundMuted, setSoundMutedState] = useState(() => isSoundMuted())
+
+  useEffect(() => {
+    unlockAudioOnFirstInteraction()
+    return () => stopRing()
+  }, [])
+
+  function toggleSound() {
+    const next = !soundMuted
+    setSoundMuted(next)
+    setSoundMutedState(next)
+  }
+
+  function dismissCall() {
+    stopRing()
+    setIncomingCall(null)
+  }
+
+  function openMessagesForCall() {
+    const call = incomingCall
+    dismissCall()
+    if (call?.id) markAsRead(call.id)
+    navigate('/messages')
+  }
 
   async function handleEnablePush() {
     setEnablingPush(true)
@@ -65,14 +106,42 @@ export default function NotificationBell() {
       { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
       (payload) => {
         if (!isActive) return
-        setNotifications((prev) => [payload.new, ...prev])
-        setToast(payload.new)
-        window.setTimeout(() => setToast(null), 5000)
-        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-          try {
-            const title = payload.new.type === 'voice_call' ? 'Incoming Campus Crib call' : 'Campus Crib notification'
-            new Notification(title, { body: payload.new.message, icon: '/icon-192.png', tag: payload.new.id })
-          } catch {}
+        const incoming = payload.new
+        setNotifications((prev) => [incoming, ...prev])
+
+        const isCall = incoming.type === 'voice_call'
+        const isCallEnded = isCall && /ended/i.test(incoming.message || '')
+        if (isCallEnded) {
+          stopRing()
+          setIncomingCall(null)
+        }
+
+        if (!isCallEnded && !alertedIds.has(incoming.id)) {
+          alertedIds.add(incoming.id)
+          const onMessagesPage = window.location.pathname.startsWith('/messages') && !document.hidden
+
+          if (isCall) {
+            setIncomingCall(incoming)
+            startRing()
+            flashTitle('Incoming call')
+          } else {
+            setToast(incoming)
+            window.setTimeout(() => setToast(null), 5000)
+            if (!(onMessagesPage && incoming.type === 'chat_message')) playChime()
+            flashTitle('New notification')
+          }
+
+          // A device with push turned on already gets a system notification from the server,
+          // so only show this one when it does not.
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            getSubscriptionStatus()
+              .then((status) => {
+                if (status.subscribed) return
+                const title = isCall ? 'Incoming Campus Crib call' : 'Campus Crib notification'
+                new Notification(title, { body: incoming.message, icon: '/icon-192.png', tag: incoming.id })
+              })
+              .catch(() => {})
+          }
         }
       }
     )
@@ -113,6 +182,22 @@ export default function NotificationBell() {
 
   return (
     <>
+      {incomingCall && (
+        <div className="fixed top-20 right-4 z-[95] w-[min(380px,calc(100vw-2rem))] animate-fade-in-up rounded-2xl border-2 border-accent bg-white shadow-2xl p-4" role="alert">
+          <div className="flex gap-3">
+            <div className="h-10 w-10 rounded-full bg-accent/10 text-accent flex items-center justify-center shrink-0 animate-pulse"><PhoneCall size={19} /></div>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-primary text-sm">Incoming call</p>
+              <p className="text-sm text-gray-600 mt-0.5 break-words">{incomingCall.message}</p>
+              <div className="mt-3 flex gap-2">
+                <button onClick={openMessagesForCall} className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors duration-150">Open Messages</button>
+                <button onClick={dismissCall} className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition-colors duration-150">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {toast && (
         <div className="fixed top-20 right-4 z-[90] w-[min(380px,calc(100vw-2rem))] animate-fade-in-up rounded-2xl border border-gray-200 bg-white shadow-2xl p-4">
           <div className="flex gap-3">
@@ -144,11 +229,21 @@ export default function NotificationBell() {
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-gray-200 shadow-sm shadow-lg z-10">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <span className="text-sm font-medium text-gray-900">Notifications</span>
-            {unreadCount > 0 && (
-              <button onClick={markAllAsRead} className="text-xs text-gray-500 underline">
-                Mark all read
+            <div className="flex items-center gap-3">
+              <button
+                onClick={toggleSound}
+                aria-label={soundMuted ? 'Turn notification sounds on' : 'Mute notification sounds'}
+                title={soundMuted ? 'Sounds off' : 'Sounds on'}
+                className="text-gray-500 hover:text-gray-800"
+              >
+                {soundMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
               </button>
-            )}
+              {unreadCount > 0 && (
+                <button onClick={markAllAsRead} className="text-xs text-gray-500 underline">
+                  Mark all read
+                </button>
+              )}
+            </div>
           </div>
 
           {(canPromptPush || needsIosInstall) && (
