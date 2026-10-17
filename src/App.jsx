@@ -16,6 +16,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import RegisterStudent from './pages/RegisterStudent'
 import RegisterLandlord from './pages/RegisterLandlord'
+import RegisterAgent from './pages/RegisterAgent'
 import StudentDashboard from './pages/StudentDashboard'
 import Favourites from './pages/Favourites'
 import LandlordDashboard from './pages/LandlordDashboard'
@@ -96,6 +97,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/register/student" element={<RegisterStudent />} />
           <Route path="/register/landlord" element={<RegisterLandlord />} />
+          <Route path="/register/agent" element={<RegisterAgent />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/feedback" element={<Feedback />} />

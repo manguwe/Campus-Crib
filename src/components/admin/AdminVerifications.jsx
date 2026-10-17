@@ -13,6 +13,7 @@ export default function AdminVerifications() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
+  const [agentMap, setAgentMap] = useState({})
 
   async function load() {
     setLoading(true)
@@ -34,7 +35,16 @@ export default function AdminVerifications() {
       .order('created_at', { ascending: true })
 
     if (error) setError(formatSupabaseError(error, 'Could not load pending verifications.'))
-    else setRows(data)
+    else {
+      setRows(data)
+      const ids = (data || []).map((r) => r.id)
+      if (ids.length) {
+        const { data: agents } = await supabase.from('agent_profiles').select('id, agency_name').in('id', ids)
+        setAgentMap(Object.fromEntries((agents || []).map((a) => [a.id, a])))
+      } else {
+        setAgentMap({})
+      }
+    }
     setLoading(false)
   }
 
@@ -96,7 +106,14 @@ export default function AdminVerifications() {
             className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4"
           >
             <div className="min-w-0">
-              <p className="font-medium text-gray-900 truncate">{r.profiles?.name}</p>
+              <p className="font-medium text-gray-900 truncate">
+                {r.profiles?.name}
+                {agentMap[r.id] && (
+                  <span className="ml-2 align-middle text-[11px] font-medium rounded-full bg-accent/10 text-accent px-2 py-0.5">
+                    Agent{agentMap[r.id].agency_name ? ` · ${agentMap[r.id].agency_name}` : ''}
+                  </span>
+                )}
+              </p>
               
 
               {hasNewDocs ? (
