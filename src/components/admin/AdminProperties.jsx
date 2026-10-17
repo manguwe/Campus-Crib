@@ -13,6 +13,8 @@ export default function AdminProperties() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
+  const [agentIds, setAgentIds] = useState({}) // landlord_id -> true
+  const [ownerDetails, setOwnerDetails] = useState({}) // property_id -> details
 
   async function load() {
     setLoading(true)
@@ -40,6 +42,24 @@ export default function AdminProperties() {
       const names = {}
       for (const p of profiles || []) names[p.id] = p.name
       setLandlordNames(names)
+
+      const { data: agentRows } = await supabase.from('agent_profiles').select('id').in('id', landlordIds)
+      const agentMap = {}
+      for (const row of agentRows || []) agentMap[row.id] = true
+      setAgentIds(agentMap)
+
+      const agentPropertyIds = props.filter((p) => agentMap[p.landlord_id]).map((p) => p.id)
+      if (agentPropertyIds.length > 0) {
+        const { data: details } = await supabase
+          .from('property_owner_details')
+          .select('property_id, owner_name, owner_phone, owner_consent')
+          .in('property_id', agentPropertyIds)
+        const detailMap = {}
+        for (const d of details || []) detailMap[d.property_id] = d
+        setOwnerDetails(detailMap)
+      } else {
+        setOwnerDetails({})
+      }
     }
 
     setLoading(false)
@@ -132,7 +152,19 @@ export default function AdminProperties() {
                   {p.title}
                 </Link>
               </td>
-              <td className="px-4 py-3 text-gray-600">{landlordNames[p.landlord_id] || '—'}</td>
+              <td className="px-4 py-3 text-gray-600">
+                {landlordNames[p.landlord_id] || '—'}
+                {agentIds[p.landlord_id] && (
+                  <>
+                    <span className="ml-2 align-middle text-[11px] font-medium rounded-full bg-accent/10 text-accent px-2 py-0.5">Agent</span>
+                    {ownerDetails[p.id]?.owner_consent ? (
+                      <p className="text-xs text-gray-500 mt-1">Owner: {ownerDetails[p.id].owner_name} · {ownerDetails[p.id].owner_phone}</p>
+                    ) : (
+                      <p className="text-xs text-amber-700 mt-1">No owner details yet</p>
+                    )}
+                  </>
+                )}
+              </td>
               <td className="px-4 py-3 text-gray-600">
                 {p.currency} {Number(p.price).toLocaleString()}
               </td>
