@@ -13,13 +13,27 @@ import {
   unlockAudioOnFirstInteraction,
 } from '../lib/alertSound'
 
+// Where a notification should take the person. Chats and calls open Messages; the rest is matched by role and wording.
+function notificationTarget(n, role) {
+  if (n.type === 'chat_message' || n.type === 'voice_call') return '/messages'
+  const text = (n.message || '').toLowerCase()
+  if (role === 'admin') return '/admin'
+  if (text.includes('reservation')) return '/reservations'
+  if (role === 'landlord') {
+    if (text.includes('verif')) return '/landlord/verification'
+    return '/landlord'
+  }
+  if (role === 'student') return '/student'
+  return null
+}
+
 // The bell can be mounted twice (desktop and mobile navbars); this makes sure one notification only alerts once.
 const alertedIds = new Set()
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 
 export default function NotificationBell() {
-  const { user } = useAuth()
+  const { user, role } = useAuth()
   const [notifications, setNotifications] = useState([])
   const [open, setOpen] = useState(false)
   const [toast, setToast] = useState(null)
@@ -47,6 +61,16 @@ export default function NotificationBell() {
   function dismissCall() {
     stopRing()
     setIncomingCall(null)
+  }
+
+  function openNotification(n) {
+    markAsRead(n.id)
+    const to = notificationTarget(n, role)
+    if (to) {
+      setOpen(false)
+      setToast(null)
+      navigate(to)
+    }
   }
 
   function openMessagesForCall() {
@@ -202,7 +226,7 @@ export default function NotificationBell() {
         <div className="fixed top-20 right-4 z-[90] w-[min(380px,calc(100vw-2rem))] animate-fade-in-up rounded-2xl border border-gray-200 bg-white shadow-2xl p-4">
           <div className="flex gap-3">
             <div className="h-9 w-9 rounded-full bg-accent/10 text-accent flex items-center justify-center shrink-0"><BellRing size={17}/></div>
-            <div className="min-w-0 flex-1"><p className="font-bold text-primary text-sm">New notification</p><p className="text-sm text-gray-600 mt-0.5 break-words">{toast.message}</p></div>
+            <button onClick={() => openNotification(toast)} className="min-w-0 flex-1 text-left"><p className="font-bold text-primary text-sm">New notification</p><p className="text-sm text-gray-600 mt-0.5 break-words">{toast.message}</p></button>
             <button onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-700" aria-label="Dismiss notification">×</button>
           </div>
         </div>
@@ -278,7 +302,7 @@ export default function NotificationBell() {
               notifications.map((n) => (
                 <button
                   key={n.id}
-                  onClick={() => markAsRead(n.id)}
+                  onClick={() => openNotification(n)}
                   className={`w-full text-left px-4 py-3 text-sm border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors duration-150 ${
                     n.is_read ? 'text-gray-500' : 'text-gray-900 font-medium'
                   }`}
