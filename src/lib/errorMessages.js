@@ -26,6 +26,10 @@ const PATTERNS = [
     test: /only an admin can/i,
     message: 'Only an administrator can do that.',
   },
+  {
+    test: /agent program is currently paused/i,
+    message: 'The agent program is paused right now, so listings cannot be added or edited. Please check back soon.',
+  },
 
   // Postgres constraint errors
   { test: /duplicate key value violates unique constraint/i, message: 'That already exists — please use a different value.' },

@@ -6,7 +6,8 @@ import ErrorBanner from './ui/ErrorBanner'
 import PasswordInput from './PasswordInput'
 import { isValidPhone } from '../lib/phone'
 
-export default function RegistrationForm({ role, title, roleLabel, afterPath }) {
+export default function RegistrationForm({ role, title, roleLabel, afterPath, accountType }) {
+  const isAgent = accountType === 'agent'
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
@@ -15,6 +16,9 @@ export default function RegistrationForm({ role, title, roleLabel, afterPath }) 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [agencyName, setAgencyName] = useState('')
+  const [serviceArea, setServiceArea] = useState('')
+  const [agentDeclaration, setAgentDeclaration] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [confirmationPending, setConfirmationPending] = useState(false)
@@ -48,6 +52,11 @@ export default function RegistrationForm({ role, title, roleLabel, afterPath }) 
       return
     }
 
+    if (isAgent && !agentDeclaration) {
+      setError('Please confirm you will only list houses you are authorised to list.')
+      return
+    }
+
     setSubmitting(true)
     const { data, error: signUpError } = await signUp({
       email: email.trim().toLowerCase(),
@@ -56,6 +65,14 @@ export default function RegistrationForm({ role, title, roleLabel, afterPath }) 
       role,
       phone: phone.trim(),
       termsAcceptedAt: new Date().toISOString(),
+      extraMetadata: isAgent
+        ? {
+            account_type: 'agent',
+            agency_name: agencyName.trim(),
+            service_area: serviceArea.trim(),
+            agent_declaration: 'true',
+          }
+        : undefined,
     })
     setSubmitting(false)
 
@@ -127,6 +144,31 @@ export default function RegistrationForm({ role, title, roleLabel, afterPath }) 
           <p className="mt-1 text-xs text-gray-400">We need your mobile number so Campus Crib Admin can contact you when necessary.</p>
         </div>
 
+        {isAgent && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Agency or business name <span className="text-gray-400">(optional)</span></label>
+              <input
+                type="text"
+                value={agencyName}
+                onChange={(e) => setAgencyName(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                placeholder="e.g. Campus Homes Agency"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Area you cover <span className="text-gray-400">(optional)</span></label>
+              <input
+                type="text"
+                value={serviceArea}
+                onChange={(e) => setServiceArea(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                placeholder="e.g. Near UNZA, Great East Road"
+              />
+            </div>
+          </>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input
@@ -151,6 +193,18 @@ export default function RegistrationForm({ role, title, roleLabel, afterPath }) 
           />
           <p className="mt-1.5 text-xs text-gray-400">Use the eye button to show or hide your password.</p>
         </div>
+
+        {isAgent && (
+          <label className="flex items-start gap-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              checked={agentDeclaration}
+              onChange={(e) => setAgentDeclaration(e.target.checked)}
+              className="mt-0.5 rounded border-gray-300 text-accent focus:ring-accent"
+            />
+            <span>I will only list houses I am authorised to list, with the owner's agreement, and I will give accurate details and photos.</span>
+          </label>
+        )}
 
         <label className="flex items-start gap-2 text-sm text-gray-600">
           <input

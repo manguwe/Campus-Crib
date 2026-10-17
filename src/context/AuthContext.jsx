@@ -137,14 +137,14 @@ export function AuthProvider({ children }) {
     }
   }, [loadProfile])
 
-  const signUp = useCallback(async ({ email, password, name, role, phone, termsAcceptedAt }) => {
+  const signUp = useCallback(async ({ email, password, name, role, phone, termsAcceptedAt, extraMetadata }) => {
     let result
     try {
       result = await withTimeout(
         supabase.auth.signUp({
           email,
           password,
-          options: { data: { name, role, phone, terms_accepted_at: termsAcceptedAt } },
+          options: { data: { name, role, phone, terms_accepted_at: termsAcceptedAt, ...(extraMetadata || {}) } },
         }),
         AUTH_TIMEOUT_MS,
         'Registration request timed out',
