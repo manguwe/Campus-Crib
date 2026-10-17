@@ -18,6 +18,8 @@ import { supabase } from '../lib/supabaseClient'
 import AmenitiesCheckboxes from '../components/AmenitiesCheckboxes'
 import PropertyMediaManager from '../components/PropertyMediaManager'
 import PropertyContactsManager from '../components/PropertyContactsManager'
+import AgentOwnerDetails from '../components/AgentOwnerDetails'
+import { useAgentProfile } from '../hooks/useAgentProfile'
 import LocationPicker from '../components/LocationPicker'
 import { BUILDING_TYPE_OPTIONS, OCCUPANCY_OPTIONS, STATUS_BADGE_STYLES, AMENITY_OPTIONS } from '../lib/constants'
 import { formatSupabaseError } from '../lib/errorMessages'
@@ -54,6 +56,7 @@ export default function PropertyEditor() {
   const { id } = useParams() // 'new' or an existing property UUID
   const isCreate = id === 'new'
   const { user } = useAuth()
+  const { agent } = useAgentProfile(user?.id)
   const { campuses } = useCampuses()
   const navigate = useNavigate()
 
@@ -741,6 +744,11 @@ export default function PropertyEditor() {
             <div className="flex items-center gap-2 bg-accent/10 text-accent text-sm font-medium rounded-xl px-4 py-3">
               <CheckCircle2 size={16} className="shrink-0" />
               Details saved — now add your photos and contact info below.
+            </div>
+          )}
+          {agent && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <AgentOwnerDetails propertyId={id} />
             </div>
           )}
           <div className="bg-primary/5 rounded-2xl shadow-sm border border-primary/10 p-6">
