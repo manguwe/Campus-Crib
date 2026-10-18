@@ -3,7 +3,7 @@ import { CalendarDays, CheckCircle2, Clock3, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
-import { cancelReservation } from '../lib/reservations'
+import { cancelReservation, fetchReservationEvents, refreshStaleReservations, respondToReservation, RESERVATION_EVENT_LABELS } from '../lib/reservations'
 import { formatSupabaseError } from '../lib/errorMessages'
 
 const labels = { pending: 'Pending review', confirmed: 'Confirmed', rejected: 'Not approved', cancelled: 'Cancelled', expired: 'Expired' }
@@ -13,9 +13,12 @@ export default function Reservations() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [events, setEvents] = useState({})
+  const [openTimeline, setOpenTimeline] = useState(null)
 
   async function load() {
     setLoading(true); setError('')
+    await refreshStaleReservations()
     // Do not embed properties here. The schema contains two relationships
     // between reservations and properties (reservations.property_id and
     // properties.reservation_hold_id), so PostgREST cannot safely infer which
@@ -23,7 +26,7 @@ export default function Reservations() {
     // separately and join them in the client instead.
     let reservationQuery = supabase
       .from('reservations')
-      .select('id, property_id, student_id, move_in_date, move_out_date, occupants, status, student_note, admin_note, created_at')
+      .select('id, property_id, student_id, move_in_date, move_out_date, occupants, status, student_note, admin_note, created_at, reference_code, respond_by, owner_response, owner_note')
       .order('created_at', { ascending: false })
 
     if (role === 'student') reservationQuery = reservationQuery.eq('student_id', user.id)
@@ -76,11 +79,25 @@ export default function Reservations() {
     try { await cancelReservation(id); await load() } catch (err) { setError(formatSupabaseError(err, 'Could not cancel reservation.')) }
   }
 
+  async function respond(reservation, accept) {
+    const note = window.prompt(accept ? 'Optional note for the student:' : 'Optional reason for declining:') || null
+    setError('')
+    try { await respondToReservation({ id: reservation.id, accept, note }); await load() } catch (err) { setError(formatSupabaseError(err, 'Could not send your response.')) }
+  }
+
+  async function toggleTimeline(id) {
+    if (openTimeline === id) { setOpenTimeline(null); return }
+    setOpenTimeline(id)
+    if (!events[id]) {
+      try { const list = await fetchReservationEvents(id); setEvents(prev => ({ ...prev, [id]: list })) } catch { setEvents(prev => ({ ...prev, [id]: [] })) }
+    }
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-5">
       <div><p className="text-xs font-bold tracking-[0.22em] text-accent uppercase">Campus Crib reservations</p><h1 className="text-2xl font-bold text-primary mt-2">{role === 'landlord' ? 'Reservations on your listings' : 'My room requests'}</h1><p className="text-gray-600 mt-1">{role === 'landlord' ? 'See which students have requested or secured your rooms.' : 'Track rooms you have asked Campus Crib to reserve.'}</p></div>
       {error && <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>}
-      {loading ? <div className="text-sm text-gray-500">Loading reservations…</div> : rows.length === 0 ? <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">{role === 'landlord' ? 'No reservation requests for your listings yet.' : "You don't have any reservation requests yet."}<div className="mt-3"><Link to={role === 'landlord' ? '/landlord' : '/browse'} className="inline-flex rounded-xl bg-primary text-white px-4 py-2 text-sm font-bold">{role === 'landlord' ? 'Back to dashboard' : 'Browse rooms'}</Link></div></div> : <div className="space-y-3">{rows.map(r => <div key={r.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div><Link to={`/properties/${r.property_id}`} className="font-bold text-primary hover:underline">{r.properties?.title || 'Listing'}</Link><p className="text-sm text-gray-600 mt-1">{r.properties?.currency} {Number(r.properties?.price || 0).toLocaleString()} / month</p></div><span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold">{labels[r.status] || r.status}</span></div><div className="grid grid-cols-2 gap-3 mt-4 text-sm"><div><span className="text-gray-500">Move-in</span><p className="font-semibold">{r.move_in_date}</p></div><div><span className="text-gray-500">Move-out</span><p className="font-semibold">{r.move_out_date || 'Not set'}</p></div></div>{r.student_note && <p className="mt-3 text-sm text-gray-600">{r.student_note}</p>}{r.admin_note && <p className="mt-3 rounded-xl bg-blue-50 p-3 text-sm text-blue-800">Admin note: {r.admin_note}</p>}{['pending','confirmed'].includes(r.status) && <button onClick={() => cancel(r.id)} className="mt-3 text-sm font-semibold text-red-600 hover:underline">Cancel request</button>}</div>)}</div>}
+      {loading ? <div className="text-sm text-gray-500">Loading reservations…</div> : rows.length === 0 ? <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">{role === 'landlord' ? 'No reservation requests for your listings yet.' : "You don't have any reservation requests yet."}<div className="mt-3"><Link to={role === 'landlord' ? '/landlord' : '/browse'} className="inline-flex rounded-xl bg-primary text-white px-4 py-2 text-sm font-bold">{role === 'landlord' ? 'Back to dashboard' : 'Browse rooms'}</Link></div></div> : <div className="space-y-3">{rows.map(r => <div key={r.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm"><div className="flex items-start justify-between gap-3"><div><Link to={`/properties/${r.property_id}`} className="font-bold text-primary hover:underline">{r.properties?.title || 'Listing'}</Link><p className="text-sm text-gray-600 mt-1">{r.properties?.currency} {Number(r.properties?.price || 0).toLocaleString()} / month</p></div><span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold">{labels[r.status] || r.status}</span></div><div className="grid grid-cols-2 gap-3 mt-4 text-sm"><div><span className="text-gray-500">Move-in</span><p className="font-semibold">{r.move_in_date}</p></div><div><span className="text-gray-500">Move-out</span><p className="font-semibold">{r.move_out_date || 'Not set'}</p></div></div>{r.student_note && <p className="mt-3 text-sm text-gray-600">{r.student_note}</p>}{r.reference_code && <p className="mt-3 text-xs text-gray-500">Reference: <span className="font-mono font-semibold text-gray-800">{r.reference_code}</span></p>}{r.status === 'pending' && <p className="mt-2 text-sm text-gray-600">{r.owner_response === 'accepted' ? 'The owner accepted. Waiting for Campus Crib to confirm.' : r.respond_by ? `Waiting for the owner to respond by ${new Date(r.respond_by).toLocaleString()}.` : 'Waiting for the owner to respond.'}</p>}{r.owner_note && <p className="mt-3 rounded-xl bg-gray-50 p-3 text-sm text-gray-700">Owner note: {r.owner_note}</p>}{r.admin_note && <p className="mt-3 rounded-xl bg-blue-50 p-3 text-sm text-blue-800">Admin note: {r.admin_note}</p>}{role === 'landlord' && r.status === 'pending' && !r.owner_response && <div className="mt-3 flex gap-2"><button onClick={() => respond(r, true)} className="rounded-xl bg-accent text-white px-4 py-2 text-sm font-bold">Accept</button><button onClick={() => respond(r, false)} className="rounded-xl border border-red-200 text-red-700 px-4 py-2 text-sm font-bold">Decline</button></div>}<div className="mt-3 flex flex-wrap items-center gap-4">{['pending','confirmed'].includes(r.status) && <button onClick={() => cancel(r.id)} className="text-sm font-semibold text-red-600 hover:underline">Cancel request</button>}<button onClick={() => toggleTimeline(r.id)} className="text-sm font-semibold text-gray-600 hover:underline">{openTimeline === r.id ? 'Hide timeline' : 'View timeline'}</button></div>{openTimeline === r.id && <ol className="mt-3 space-y-2 border-l-2 border-gray-200 pl-4">{(events[r.id] || []).length === 0 ? <li className="text-sm text-gray-500">No activity recorded yet.</li> : (events[r.id] || []).map(ev => <li key={ev.id} className="text-sm"><p className="font-medium text-gray-800">{RESERVATION_EVENT_LABELS[ev.event] || ev.event}</p><p className="text-xs text-gray-500">{new Date(ev.created_at).toLocaleString()}{ev.note ? ` · ${ev.note}` : ''}</p></li>)}</ol>}</div>)}</div>}
     </div>
   )
 }
