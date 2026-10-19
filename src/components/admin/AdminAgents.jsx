@@ -4,15 +4,53 @@ import { supabase } from '../../lib/supabaseClient'
 import { formatSupabaseError } from '../../lib/errorMessages'
 import {
   fetchAgentListingsVisible,
+  setAgentAccess,
   setAgentListingsVisible,
   setAgentsProgramEnabled,
 } from '../../lib/agentsProgram'
+import AdminAgentFees from './AdminAgentFees'
 import { useAgentsProgram } from '../../hooks/useAgentsProgram'
 import PageLoading from '../ui/PageLoading'
 import EmptyState from '../ui/EmptyState'
 import ErrorBanner from '../ui/ErrorBanner'
 
 const VERIFICATION_LABEL = { pending: 'Awaiting verification', approved: 'Verified', rejected: 'Rejected' }
+const ACCESS_LABEL = {
+  not_required: 'No fee required',
+  waived: 'Fee waived',
+  active: 'Access active',
+  provisional: 'Access (proof being checked)',
+  awaiting_verification: 'Proof awaiting check',
+  expired: 'Access expired',
+  rejected: 'Proof rejected',
+  payment_needed: 'Payment needed',
+  revoked: 'Access switched off',
+}
+const EVENT_LABEL = {
+  signed_up: 'Signed up as an agent',
+  verification_submitted: 'Submitted ID for verification',
+  verification_approved: 'ID verified',
+  verification_rejected: 'ID rejected',
+  payment_submitted: 'Submitted proof of payment',
+  payment_confirmed: 'Payment confirmed',
+  payment_rejected: 'Payment rejected',
+  access_waived: 'Fee waived by an admin',
+  access_revoked: 'Access switched off by an admin',
+  access_restored: 'Access restored by an admin',
+  listing_created: 'Created a listing',
+  listing_edited: 'Edited a listing',
+  listing_pending: 'Listing sent for approval',
+  listing_approved: 'Listing approved',
+  listing_rejected: 'Listing rejected',
+  owner_details_saved: 'Saved owner details',
+  media_added: 'Added a photo or video',
+  media_removed: 'Removed a photo or video',
+  reservation_requested: 'Received a reservation request',
+  reservation_accepted: 'Accepted a reservation request',
+  reservation_declined: 'Declined a reservation request',
+  suspended: 'Suspended',
+  unsuspended: 'Unsuspended',
+}
 const EMPTY_STATS = {
   listings_total: 0,
   listings_live: 0,
@@ -56,17 +94,21 @@ export default function AdminAgents() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyAgentId, setBusyAgentId] = useState(null)
+  const [accessStates, setAccessStates] = useState({})
+  const [openActivity, setOpenActivity] = useState(null)
+  const [activity, setActivity] = useState({})
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
-    const [{ data, error: agentsError }, { data: statRows, error: statsError }, visible] = await Promise.all([
+    const [{ data, error: agentsError }, { data: statRows, error: statsError }, visible, { data: accessRows }] = await Promise.all([
       supabase
         .from('agent_profiles')
-        .select('id, agency_name, service_area, declaration_accepted, created_at, profiles(name, is_suspended)')
+        .select('id, agency_name, service_area, declaration_accepted, created_at, access_waived, access_revoked, profiles(name, is_suspended)')
         .order('created_at', { ascending: false }),
       supabase.rpc('admin_agent_stats'),
       fetchAgentListingsVisible(),
+      supabase.rpc('admin_agent_access_states'),
     ])
 
     setListingsVisible(visible)
@@ -89,6 +131,7 @@ export default function AdminAgents() {
     const statMap = {}
     for (const s of statRows || []) statMap[s.agent_id] = s
 
+    setAccessStates(Object.fromEntries((accessRows || []).map((r) => [r.agent_id, r])))
     setAgents(rows)
     setVerifications(verificationMap)
     setStats(statMap)
@@ -165,8 +208,38 @@ export default function AdminAgents() {
     else load()
   }
 
+  async function changeAccess(agent, { waived, revoked }, confirmText) {
+    if (confirmText && !window.confirm(confirmText)) return
+    setBusyAgentId(agent.id)
+    setError('')
+    try {
+      await setAgentAccess(agent.id, { waived, revoked })
+      await load()
+    } catch (err) {
+      setError(formatSupabaseError(err, 'Could not change this agent\'s access.'))
+    }
+    setBusyAgentId(null)
+  }
+
+  async function toggleActivity(agentId) {
+    if (openActivity === agentId) {
+      setOpenActivity(null)
+      return
+    }
+    setOpenActivity(agentId)
+    const { data } = await supabase
+      .from('agent_events')
+      .select('id, event, detail, created_at')
+      .eq('agent_id', agentId)
+      .order('created_at', { ascending: false })
+      .limit(100)
+    setActivity((prev) => ({ ...prev, [agentId]: data || [] }))
+  }
+
   return (
     <div className="space-y-6 max-w-4xl">
+      <AdminAgentFees onReviewed={load} />
+
       <SwitchCard
         title="Agent program"
         description={
@@ -235,9 +308,15 @@ export default function AdminAgents() {
                       {[a.agency_name, a.service_area].filter(Boolean).join(' · ') || 'No agency or area given'}
                     </p>
                   </div>
-                  <span className="text-xs rounded-full bg-gray-100 text-gray-700 px-2 py-1">
-                    {VERIFICATION_LABEL[verifications[a.id]] || 'No verification yet'}
-                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="text-xs rounded-full bg-gray-100 text-gray-700 px-2 py-1">
+                      {VERIFICATION_LABEL[verifications[a.id]] || 'No verification yet'}
+                    </span>
+                    <span className="text-xs rounded-full bg-accent/10 text-accent px-2 py-1">
+                      {ACCESS_LABEL[accessStates[a.id]?.state] || 'Access unknown'}
+                      {accessStates[a.id]?.access_until ? ` · until ${new Date(accessStates[a.id].access_until).toLocaleDateString()}` : ''}
+                    </span>
+                  </div>
                 </div>
                 <p className="text-xs text-gray-600 mt-3">
                   Listings: {s.listings_total} total · {s.listings_live} live · {s.listings_pending} awaiting approval · {s.listings_rejected} rejected
@@ -249,7 +328,39 @@ export default function AdminAgents() {
                 {!a.declaration_accepted && (
                   <p className="text-xs text-amber-700 mt-1">Did not tick the owner-authorisation declaration.</p>
                 )}
-                <div className="mt-3">
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {a.access_revoked ? (
+                    <button
+                      onClick={() => changeAccess(a, { waived: a.access_waived, revoked: false })}
+                      disabled={busyAgentId === a.id}
+                      className="text-xs font-medium rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Restore access
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => changeAccess(a, { waived: !a.access_waived, revoked: false })}
+                        disabled={busyAgentId === a.id}
+                        className="text-xs font-medium rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        {a.access_waived ? 'Stop waiving fee' : 'Waive fee'}
+                      </button>
+                      <button
+                        onClick={() => changeAccess(a, { waived: false, revoked: true }, 'Switch off this agent\'s access? They will not be able to add or edit listings.')}
+                        disabled={busyAgentId === a.id}
+                        className="text-xs font-medium rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        Switch off access
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => toggleActivity(a.id)}
+                    className="text-xs font-medium rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50"
+                  >
+                    {openActivity === a.id ? 'Hide activity' : 'View activity'}
+                  </button>
                   <button
                     onClick={() => toggleSuspend(a)}
                     disabled={busyAgentId === a.id}
@@ -258,6 +369,23 @@ export default function AdminAgents() {
                     {busyAgentId === a.id ? 'Working…' : suspended ? 'Unsuspend agent' : 'Suspend agent'}
                   </button>
                 </div>
+                {openActivity === a.id && (
+                  <ol className="mt-3 space-y-2 border-l-2 border-gray-200 pl-4 max-h-72 overflow-y-auto">
+                    {(activity[a.id] || []).length === 0 ? (
+                      <li className="text-sm text-gray-500">No activity recorded yet.</li>
+                    ) : (
+                      (activity[a.id] || []).map((ev) => (
+                        <li key={ev.id} className="text-sm">
+                          <p className="font-medium text-gray-800">{EVENT_LABEL[ev.event] || ev.event}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(ev.created_at).toLocaleString()}
+                            {ev.detail ? ` · ${ev.detail}` : ''}
+                          </p>
+                        </li>
+                      ))
+                    )}
+                  </ol>
+                )}
               </li>
             )
           })}

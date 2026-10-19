@@ -16,6 +16,8 @@ import PushNotificationToggle from '../components/PushNotificationToggle'
 import ListingStatsModal from '../components/ListingStatsModal'
 import { useAgentProfile } from '../hooks/useAgentProfile'
 import { useAgentsProgram } from '../hooks/useAgentsProgram'
+import { useAgentAccess } from '../hooks/useAgentAccess'
+import AgentAccessCard from '../components/AgentAccessCard'
 
 export default function LandlordDashboard() {
   const { user, profile } = useAuth()
@@ -23,6 +25,8 @@ export default function LandlordDashboard() {
   const { agent } = useAgentProfile(user?.id)
   const { enabled: agentsEnabled } = useAgentsProgram()
   const agentPaused = Boolean(agent) && !agentsEnabled
+  const { access: agentAccess, refresh: refreshAgentAccess } = useAgentAccess(user?.id)
+  const agentLocked = Boolean(agent) && Boolean(agentAccess) && agentAccess.has_access === false
 
   const [verification, setVerification] = useState(null)
   const [properties, setProperties] = useState([])
@@ -130,6 +134,8 @@ export default function LandlordDashboard() {
         </div>
       )}
 
+      {agent && <AgentAccessCard access={agentAccess} agentId={user.id} onChanged={refreshAgentAccess} />}
+
       {!isVerified && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <span>
@@ -148,7 +154,7 @@ export default function LandlordDashboard() {
 
       <div className="flex items-center justify-between">
         <h3 className="font-medium text-gray-900">Your listings</h3>
-        {isVerified && !agentPaused ? (
+        {isVerified && !agentPaused && !agentLocked ? (
           <Link
             to="/landlord/properties/new"
             className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
@@ -156,7 +162,7 @@ export default function LandlordDashboard() {
             + New listing
           </Link>
         ) : (
-          <span className="text-xs text-gray-400">{agentPaused ? 'Agent program is paused' : 'Verify your account to create listings'}</span>
+          <span className="text-xs text-gray-400">{agentPaused ? 'Agent program is paused' : agentLocked ? 'Activate your agent account to add listings' : 'Verify your account to create listings'}</span>
         )}
       </div>
 
@@ -171,7 +177,7 @@ export default function LandlordDashboard() {
               ? "Once you add a listing, it'll show up here for you to manage."
               : 'Get verified first, then create your first listing.'
           }
-          action={isVerified && !agentPaused ? { label: '+ New listing', to: '/landlord/properties/new' } : undefined}
+          action={isVerified && !agentPaused && !agentLocked ? { label: '+ New listing', to: '/landlord/properties/new' } : undefined}
         />
       ) : (
         <ul className="space-y-3">
