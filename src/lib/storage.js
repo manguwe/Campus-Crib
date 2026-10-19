@@ -15,6 +15,7 @@ const COMPRESSION = {
   'property-media': { maxSide: 1600, quality: 0.8 },
   'landlord-document': { maxSide: 2000, quality: 0.85 },
   'payment-proof': { maxSide: 2000, quality: 0.85 },
+  'agent-payment-proof': { maxSide: 2000, quality: 0.85 },
 }
 
 // Shrinks a photo in the browser. Videos, PDFs, GIFs and anything it cannot read are returned unchanged.
@@ -125,4 +126,18 @@ export async function deletePropertyMediaFile(item) {
   const path = decodeURIComponent(publicUrl.slice(idx + marker.length))
   const { error } = await supabase.storage.from('property-media').remove([path])
   if (error) throw error
+}
+
+export async function uploadAgentPaymentProof(file) {
+  const result = await upload(file, 'agent-payment-proof')
+  return result.reference
+}
+
+export async function getAgentPaymentProofUrl(reference) {
+  const body = new FormData()
+  body.append('action', 'view')
+  body.append('purpose', 'agent-payment-proof')
+  body.append('reference', reference)
+  const result = await callMediaFunction(body)
+  return result.url
 }
