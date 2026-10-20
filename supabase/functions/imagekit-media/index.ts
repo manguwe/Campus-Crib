@@ -70,6 +70,16 @@ Deno.serve(async (req) => {
         const { data: agent } = await userClient.from('agent_profiles').select('id').eq('id', user.id).maybeSingle()
         if (!agent) return json({ error: 'Only agents can upload this' }, 403)
         folder = `/campus-crib/private/agent-payments/${user.id}`
+      } else if (purpose === 'reservation-proof') {
+        if (role !== 'student' || (!isImage && !isPdf)) return json({ error: 'Not allowed for this upload' }, 403)
+        const { data: due } = await userClient
+          .from('reservations')
+          .select('id')
+          .eq('student_id', user.id)
+          .in('payment_status', ['awaiting_payment', 'rejected'])
+          .limit(1)
+        if (!due?.length) return json({ error: 'No reservation payment is due' }, 403)
+        folder = `/campus-crib/private/reservation-proofs/${user.id}`
       } else return json({ error: 'Unknown upload purpose' }, 400)
 
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120) || 'upload.bin'
@@ -89,8 +99,8 @@ Deno.serve(async (req) => {
       const reference = String(body.get('reference') || '')
       const purpose = String(body.get('purpose') || '')
       if (!reference.startsWith(marker)) return json({ error: 'Unsupported media reference' }, 400)
-      if ((purpose === 'landlord-document' && role !== 'landlord') || (purpose === 'agent-payment-proof' && role !== 'landlord') || (purpose === 'payment-proof' && role !== 'student')) return json({ error: 'Not allowed' }, 403)
-      if (!['landlord-document', 'payment-proof', 'agent-payment-proof'].includes(purpose)) return json({ error: 'Invalid cleanup purpose' }, 400)
+      if ((purpose === 'landlord-document' && role !== 'landlord') || (purpose === 'agent-payment-proof' && role !== 'landlord') || ((purpose === 'payment-proof' || purpose === 'reservation-proof') && role !== 'student')) return json({ error: 'Not allowed' }, 403)
+      if (!['landlord-document', 'payment-proof', 'agent-payment-proof', 'reservation-proof'].includes(purpose)) return json({ error: 'Invalid cleanup purpose' }, 400)
       const fileId = reference.slice(marker.length)
       const metaResponse = await fetch(`https://api.imagekit.io/v1/files/${encodeURIComponent(fileId)}/details`, { headers: { Authorization: imageKitAuth } })
       const meta = await metaResponse.json()
@@ -98,7 +108,9 @@ Deno.serve(async (req) => {
         ? `/campus-crib/private/landlord-documents/${user.id}/`
         : purpose === 'agent-payment-proof'
           ? `/campus-crib/private/agent-payments/${user.id}/`
-          : `/campus-crib/private/payment-proofs/${user.id}/`
+          : purpose === 'reservation-proof'
+            ? `/campus-crib/private/reservation-proofs/${user.id}/`
+            : `/campus-crib/private/payment-proofs/${user.id}/`
       if (!metaResponse.ok || !String(meta.filePath || '').startsWith(expectedPrefix)) return json({ error: 'Upload ownership could not be verified' }, 403)
       const deleted = await fetch(`https://api.imagekit.io/v1/files/${encodeURIComponent(fileId)}`, { method: 'DELETE', headers: { Authorization: imageKitAuth } })
       if (!deleted.ok && deleted.status !== 404) return json({ error: 'Could not clean up uploaded file' }, 502)
@@ -135,6 +147,9 @@ Deno.serve(async (req) => {
         }
       } else if (purpose === 'payment-proof' && role === 'admin') {
         const { data } = await userClient.from('property_access_requests').select('id').eq('proof_path', reference).limit(1)
+        allowed = Boolean(data?.length)
+      } else if (purpose === 'reservation-proof' && role === 'admin') {
+        const { data } = await userClient.from('reservations').select('id').eq('payment_proof_path', reference).limit(1)
         allowed = Boolean(data?.length)
       } else if (purpose === 'agent-payment-proof' && role === 'admin') {
         const { data } = await userClient.from('agent_payments').select('id').eq('proof_path', reference).limit(1)

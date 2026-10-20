@@ -16,6 +16,7 @@ const COMPRESSION = {
   'landlord-document': { maxSide: 2000, quality: 0.85 },
   'payment-proof': { maxSide: 2000, quality: 0.85 },
   'agent-payment-proof': { maxSide: 2000, quality: 0.85 },
+  'reservation-proof': { maxSide: 2000, quality: 0.85 },
 }
 
 // Shrinks a photo in the browser. Videos, PDFs, GIFs and anything it cannot read are returned unchanged.
@@ -137,6 +138,20 @@ export async function getAgentPaymentProofUrl(reference) {
   const body = new FormData()
   body.append('action', 'view')
   body.append('purpose', 'agent-payment-proof')
+  body.append('reference', reference)
+  const result = await callMediaFunction(body)
+  return result.url
+}
+
+export async function uploadReservationProof(file) {
+  const result = await upload(file, 'reservation-proof')
+  return result.reference
+}
+
+export async function getReservationProofUrl(reference) {
+  const body = new FormData()
+  body.append('action', 'view')
+  body.append('purpose', 'reservation-proof')
   body.append('reference', reference)
   const result = await callMediaFunction(body)
   return result.url
