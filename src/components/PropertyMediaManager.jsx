@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, Trash2, UploadCloud, Expand } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
-import { uploadPropertyMediaFile, deletePropertyMediaFile } from '../lib/storage'
+import { uploadPropertyMediaFile, deletePropertyMediaFile, discardPropertyUpload } from '../lib/storage'
 import { formatSupabaseError } from '../lib/errorMessages'
 import ErrorBanner from './ui/ErrorBanner'
 import Spinner from './ui/Spinner'
@@ -66,7 +66,11 @@ export default function PropertyMediaManager({ propertyId, landlordId }) {
           storage_file_id: uploaded.fileId,
           sort_order: nextSortOrder,
         })
-        if (insertError) throw insertError
+        if (insertError) {
+          // The file is already stored, so remove it again rather than leave an orphan behind
+          discardPropertyUpload(uploaded.fileId).catch(() => {})
+          throw insertError
+        }
         nextSortOrder += 1
       }
       await loadMedia()
