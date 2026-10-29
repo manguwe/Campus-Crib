@@ -1,6 +1,8 @@
 import { supabase } from './supabaseClient'
 
-const PRIVATE_MARKER = 'ikfile:'
+// Private files are referenced as r2file:<key> (Cloudflare R2). Older ones may still be ikfile:<id> (ImageKit).
+const PRIVATE_MARKERS = ['r2file:', 'ikfile:']
+const isPrivateReference = (reference) => PRIVATE_MARKERS.some((marker) => reference?.startsWith(marker))
 
 async function callMediaFunction(formData) {
   const { data, error } = await supabase.functions.invoke('imagekit-media', { body: formData })
@@ -67,7 +69,7 @@ export async function uploadLandlordDocument(file) {
 }
 
 export async function getIdDocumentSignedUrl(reference, expiresInSeconds = 300) {
-  if (!reference?.startsWith(PRIVATE_MARKER)) {
+  if (!isPrivateReference(reference)) {
     const { data, error } = await supabase.storage.from('landlord-documents').createSignedUrl(reference, expiresInSeconds)
     if (error) throw error
     return data.signedUrl
@@ -81,7 +83,7 @@ export async function getIdDocumentSignedUrl(reference, expiresInSeconds = 300) 
 }
 
 export async function discardPrivateUpload(reference, purpose) {
-  if (!reference?.startsWith(PRIVATE_MARKER)) return
+  if (!isPrivateReference(reference)) return
   const body = new FormData()
   body.append('action', 'discard-private-upload')
   body.append('purpose', purpose)
@@ -90,7 +92,7 @@ export async function discardPrivateUpload(reference, purpose) {
 }
 
 export async function getPaymentProofSignedUrl(reference) {
-  if (!reference?.startsWith(PRIVATE_MARKER)) {
+  if (!isPrivateReference(reference)) {
     const { data, error } = await supabase.storage.from('payment-proofs').createSignedUrl(reference, 600)
     if (error) throw error
     return data.signedUrl
@@ -155,4 +157,13 @@ export async function getReservationProofUrl(reference) {
   body.append('reference', reference)
   const result = await callMediaFunction(body)
   return result.url
+}
+
+// Removes a just-uploaded listing photo or video when saving it to the database failed.
+export async function discardPropertyUpload(fileId) {
+  if (!fileId) return
+  const body = new FormData()
+  body.append('action', 'discard-property-media')
+  body.append('fileId', fileId)
+  await callMediaFunction(body)
 }
