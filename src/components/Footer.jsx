@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
+import { useSitePromotions } from '../hooks/useSitePromotions'
+import { OPEN_COMMUNITY_EVENT } from '../lib/promotions'
 
 export default function Footer() {
+  const promotions = useSitePromotions()
   return (
     <footer className="bg-primary text-white mt-auto">
       <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm">
@@ -20,6 +23,15 @@ export default function Footer() {
           <Link to="/feedback" className="text-white/80 hover:text-white">
             Feedback
           </Link>
+          {promotions?.enabled && (
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(OPEN_COMMUNITY_EVENT))}
+              className="text-white/80 hover:text-white underline"
+            >
+              Join our community
+            </button>
+          )}
           <Link to="/terms" className="text-white/80 hover:text-white">
             Terms
           </Link>

@@ -18,6 +18,7 @@ import AdminLaunchReadiness from '../components/admin/AdminLaunchReadiness'
 import AdminAccessRequests from '../components/admin/AdminAccessRequests'
 import AdminReservations from '../components/admin/AdminReservations'
 import AdminAgents from '../components/admin/AdminAgents'
+import AdminPromotions from '../components/admin/AdminPromotions'
 
 const TABS = [
   { id: 'overview', label: 'Overview', priority: 'hero' },
@@ -28,6 +29,7 @@ const TABS = [
   { id: 'ai-usage', label: 'AI Usage' },
   { id: 'verifications', label: 'Landlord verifications', countKey: 'verifications' },
   { id: 'agents', label: 'Agents' },
+  { id: 'promotions', label: 'Promotions' },
   { id: 'properties', label: 'Properties', countKey: 'properties' },
   { id: 'access', label: 'Access requests', countKey: 'access' },
   { id: 'reservations', label: 'Reservations', countKey: 'reservations' },
@@ -123,6 +125,7 @@ export default function AdminDashboard() {
       {tab === 'ai-usage' && <AdminAiUsage />}
       {tab === 'verifications' && <AdminVerifications />}
       {tab === 'agents' && <AdminAgents />}
+      {tab === 'promotions' && <AdminPromotions />}
       {tab === 'properties' && <AdminProperties />}
       {tab === 'access' && <AdminAccessRequests />}
       {tab === 'reservations' && <AdminReservations />}

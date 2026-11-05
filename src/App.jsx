@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import CommunityPrompt from './components/CommunityPrompt'
 import ScrollToTop from './components/ScrollToTop'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -190,6 +191,7 @@ function App() {
 
       </PlatformModeGate>
       <Footer />
+      <CommunityPrompt />
     </div>
     </PlatformModeProvider>
   )
