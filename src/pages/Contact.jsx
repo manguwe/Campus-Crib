@@ -27,13 +27,13 @@ const ROLE_CARDS = [
     value: 'student',
     icon: GraduationCap,
     title: 'Students',
-    body: 'Questions about a listing, how verification works, or trouble finding a place near your campus.',
+    body: 'Questions about a room, how verification works, or trouble finding a place near your campus.',
   },
   {
     value: 'landlord',
     icon: Building2,
     title: 'Landlords',
-    body: 'Ready to list a property, need help with verification, or want to update an existing listing.',
+    body: 'Ready to list a property, need help with verification, or want to update an existing room.',
   },
   {
     value: 'university_partner',
@@ -120,7 +120,7 @@ export default function Contact() {
           However you reach us, we're glad you did.
         </h1>
         <p className="text-gray-600 mt-4 leading-relaxed">
-          Whether you're searching for a room, listing a property, or exploring a partnership with
+          Whether you're searching for a room, room a property, or exploring a partnership with
           your university, our team is ready to help.
         </p>
       </section>

@@ -82,7 +82,7 @@ export default function AdminPromotions() {
       <div>
         <h2 className="text-lg font-semibold text-primary">Community and partner-site popup</h2>
         <p className="text-sm text-gray-500 mt-1">
-          A friendly popup on the public pages (home, browse, listings). It invites visitors to join your social media and WhatsApp group, and sends
+          A friendly popup on the public pages (home, browse, rooms). It invites visitors to join your social media and WhatsApp group, and sends
           people who know a room to your agent site. On computers it also appears when the mouse leaves the window; on phones it appears after a short time.
         </p>
       </div>

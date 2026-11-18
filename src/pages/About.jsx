@@ -20,7 +20,7 @@ const TEAM = [
     role: 'Brand Designer',
     bio: 'Creative web designer and developer behind Global Web Co, focused on building clean digital experiences, branding, and user-friendly web interfaces. Contributed to Campus Crib through its branding, logo, and web pages.',
     photo: taroPhoto,
-    github: '',
+    github: 'https://github.com/Global-Web-Co',
     portfolio: '',
     email: 'taropafadzwanashekadurira@gmail.com',
   },
@@ -35,7 +35,7 @@ const HOW_WE_HELP = [
   {
     icon: Camera,
     title: 'See it before you visit',
-    body: "Photos, video walkthroughs, and a map pin for every listing, so you know exactly what you're looking at.",
+    body: "Photos, video walkthroughs, and a map pin for every room, so you know exactly what you're looking at.",
   },
   {
     icon: MessageCircle,
@@ -77,7 +77,7 @@ export default function About() {
           Finding student housing shouldn't feel like a gamble.
         </h1>
         <p className="text-gray-600 mt-4 leading-relaxed">
-          Campus Crib connects students with verified landlords near campus — real listings, real
+          Campus Crib connects students with verified landlords near campus — real rooms, real
           locations, and a direct line to the person holding the keys.
         </p>
       </section>
@@ -97,7 +97,7 @@ export default function About() {
           </blockquote>
           <p>
             Not a fix for one bad experience, but a proper answer: a single place where every
-            landlord is verified, every listing is reviewed, and every student can search with
+            landlord is verified, every room is reviewed, and every student can search with
             confidence instead of crossing their fingers.
           </p>
         </div>
@@ -149,7 +149,7 @@ export default function About() {
           ))}
         </div>
         <p className="text-sm text-gray-500 mt-5 leading-relaxed">
-          Every listing is mapped and distance-checked against your campus, so you always know how
+          Every room is mapped and distance-checked against your campus, so you always know how
           far home really is — before you commit to anything.
         </p>
       </section>
@@ -252,7 +252,7 @@ export default function About() {
             to="/browse"
             className="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
           >
-            Search Listings
+            Search Rooms
           </Link>
           <Link
             to="/register/landlord"

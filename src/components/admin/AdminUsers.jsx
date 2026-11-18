@@ -41,7 +41,7 @@ function buildWhatsAppUrl(user) {
     'This is Campus Crib Admin. We have seen that you registered on the Campus Crib platform.',
     'Thank you for joining Campus Crib.',
     '',
-    'If you have any questions, a complaint, or need help with your account or a listing, please let us know here and our team will assist you.',
+    'If you have any questions, a complaint, or need help with your account or a room, please let us know here and our team will assist you.',
     '',
     '— Campus Crib Admin',
   ].join('\n')
@@ -58,7 +58,7 @@ function buildEmailUrl(user) {
     'This is Campus Crib Admin. We have seen that you registered on the Campus Crib platform.',
     'Thank you for joining Campus Crib.',
     '',
-    'If you have any questions, a complaint, or need help with your account or a listing, please reply to this email and our team will assist you.',
+    'If you have any questions, a complaint, or need help with your account or a room, please reply to this email and our team will assist you.',
     '',
     '— Campus Crib Admin',
   ].join('\n')

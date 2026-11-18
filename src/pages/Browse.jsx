@@ -38,7 +38,7 @@ const baseFilters = {
 }
 
 // available < on_hold < taken, so a compound sort key of
-// [availabilityRank, ...] keeps taken/on_hold listings from crowding
+// [availabilityRank, ...] keeps taken/on_hold rooms from crowding
 // out available ones at the top, regardless of the primary sort field.
 const AVAILABILITY_RANK = { available: 0, on_hold: 1, taken: 2 }
 
@@ -98,7 +98,7 @@ export default function Browse() {
 
       // No .eq('status', 'approved') needed - RLS already limits what an
       // anonymous/student visitor can see to approved rows (see
-      // 02_policies.sql). Listing it explicitly here would just be
+      // 02_policies.sql). Room it explicitly here would just be
       // redundant, not the actual security boundary.
       const { data: props, error: propsError } = await supabase
         .from('properties')
@@ -108,7 +108,7 @@ export default function Browse() {
         .order('created_at', { ascending: false })
 
       if (propsError) {
-        setError(formatSupabaseError(propsError, 'Could not load listings. Please try again.'))
+        setError(formatSupabaseError(propsError, 'Could not load rooms. Please try again.'))
         setLoading(false)
         return
       }
@@ -220,13 +220,13 @@ export default function Browse() {
       case 'price_desc':
         return rows.sort((a, b) => b.price - a.price)
       case 'rating':
-        // Unrated listings sort to the end regardless of direction, so a
+        // Unrated rooms sort to the end regardless of direction, so a
         // handful of 5-star-but-unrated-looking rows don't crowd out
         // ones people have actually reviewed.
         return rows.sort((a, b) => (b.ratingAverage ?? -1) - (a.ratingAverage ?? -1))
       case 'distance':
       default:
-        // Available listings before on_hold before taken, then by
+        // Available rooms before on_hold before taken, then by
         // distance within each group - so a taken room never crowds out
         // an available one at the top just for being closer.
         return rows.sort((a, b) => {
@@ -238,7 +238,7 @@ export default function Browse() {
   }, [properties, filters, selectedCampus, sortBy, ratings])
 
   // Browse is for students and guests - landlords manage their own
-  // listings and have no reason to shop the marketplace the way a
+  // rooms and have no reason to shop the marketplace the way a
   // student does. Guests and students pass straight through; only a
   // logged-in landlord gets redirected. Placed after every hook above,
   // same as the equivalent guard in Home.jsx.
@@ -262,7 +262,7 @@ export default function Browse() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold text-primary mb-1">Browse listings</h1>
+      <h1 className="text-2xl font-bold text-primary mb-1">Browse rooms</h1>
       <p className="text-gray-500 mb-6">Approved boarding houses near {selectedCampus.name}.</p>
 
       <div className="mb-6">
@@ -293,11 +293,11 @@ export default function Browse() {
           )}
 
           {loading ? (
-            <PageLoading label="Loading listings…" />
+            <PageLoading label="Loading rooms…" />
           ) : filtered.length === 0 ? (
             <EmptyState
               icon={SearchX}
-              title="No listings match those filters"
+              title="No rooms match those filters"
               description="Try widening your price range, increasing the distance, or clearing a few amenity filters."
             />
           ) : (

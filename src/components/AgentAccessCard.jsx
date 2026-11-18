@@ -7,7 +7,7 @@ import { discardPrivateUpload, uploadAgentPaymentProof } from '../lib/storage'
 const money = (access) => `${access.currency} ${Number(access.amount).toLocaleString()}`
 const dateText = (value) => (value ? new Date(value).toLocaleDateString() : null)
 
-/** Shows an agent whether they can post listings, and lets them pay the access fee by uploading proof of payment. */
+/** Shows an agent whether they can post rooms, and lets them pay the access fee by uploading proof of payment. */
 export default function AgentAccessCard({ access, agentId, onChanged }) {
   const [file, setFile] = useState(null)
   const [payerNote, setPayerNote] = useState('')
@@ -73,8 +73,8 @@ export default function AgentAccessCard({ access, agentId, onChanged }) {
           <p className="text-sm font-semibold text-amber-900">Payment proof received</p>
           <p className="text-sm text-amber-800">
             {access.state === 'provisional'
-              ? 'You can add listings while we check your payment. If it cannot be confirmed, your access stops.'
-              : 'You can add listings once we have checked your payment.'}
+              ? 'You can add rooms while we check your payment. If it cannot be confirmed, your access stops.'
+              : 'You can add rooms once we have checked your payment.'}
           </p>
         </div>
       </div>

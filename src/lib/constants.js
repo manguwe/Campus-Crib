@@ -68,7 +68,7 @@ export const STATUS_BADGE_STYLES = {
 // `status` moderation state above - see 18_property_availability_status.sql.
 export const AVAILABILITY_STATUS_OPTIONS = [
   { value: 'available', label: 'Available' },
-  { value: 'on_hold', label: 'On hold' },
+  { value: 'on_hold', label: 'On hold (maintenance or renovation)' },
   { value: 'taken', label: 'Fully booked' },
 ]
 
@@ -89,9 +89,9 @@ export const AVAILABILITY_STATUS_DOT_COLORS = {
   taken: 'bg-red-500',
 }
 
-// Listing reports (property_reports) - see 19_property_reports_table.sql
+// Room reports (property_reports) - see 19_property_reports_table.sql
 export const REPORT_REASON_OPTIONS = [
-  { value: 'fake_listing', label: 'This listing looks fake' },
+  { value: 'fake_listing', label: 'This room looks fake' },
   { value: 'misleading_info', label: 'The information is misleading' },
   { value: 'inappropriate_content', label: 'Inappropriate content' },
   { value: 'scam_or_fraud', label: 'Scam or fraud attempt' },

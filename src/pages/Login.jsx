@@ -40,7 +40,10 @@ export default function Login() {
 
     // Prefer sending them back to wherever ProtectedRoute intercepted them
     // from; otherwise fall back to a role-appropriate dashboard.
-    const from = location.state?.from?.pathname
+    // Keep the page they were trying to reach (including its query string), unless that was a login/register page.
+    const intended = location.state?.from
+    const fromPath = intended ? `${intended.pathname}${intended.search || ''}${intended.hash || ''}` : null
+    const from = fromPath && !/^\/(login|register|forgot-password|reset-password)/.test(fromPath) ? fromPath : null
     const destination = mode === 'pre_launch' && role !== 'admin' ? '/' : (from || dashboardPathForRole(role) || '/')
     navigate(destination, { replace: true })
   }

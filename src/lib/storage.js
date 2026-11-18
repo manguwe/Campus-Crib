@@ -159,7 +159,7 @@ export async function getReservationProofUrl(reference) {
   return result.url
 }
 
-// Removes a just-uploaded listing photo or video when saving it to the database failed.
+// Removes a just-uploaded room photo or video when saving it to the database failed.
 export async function discardPropertyUpload(fileId) {
   if (!fileId) return
   const body = new FormData()

@@ -102,7 +102,7 @@ export default function AdminAiUsage() {
                     <span className="text-gray-400 font-normal">
                       {' — '}
                       {r.event_type === 'ai_description_generated'
-                        ? 'generated a listing description'
+                        ? 'generated a room description'
                         : 'searched with AI'}
                     </span>
                   </p>

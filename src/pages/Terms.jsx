@@ -6,7 +6,7 @@ const SECTIONS = [
   {
     heading: '1. What This Platform Does',
     paragraphs: [
-      'Campus Crib is an online marketplace that helps university students find boarding houses and rooms near their campus, and helps landlords list verified accommodation to students. The Platform does not own, manage, or lease any property listed on it — it is a listings and discovery service only. Any agreement to rent a room is made directly between a student and a landlord, outside of the Platform.',
+      'Campus Crib is an online marketplace that helps university students find boarding houses and rooms near their campus, and helps landlords list verified accommodation to students. The Platform does not own, manage, or lease any property listed on it — it is a rooms and discovery service only. Any agreement to rent a room is made directly between a student and a landlord, outside of the Platform.',
     ],
   },
   {
@@ -16,7 +16,7 @@ const SECTIONS = [
       'Landlords: property owners or authorised agents who wish to list boarding houses may register a landlord account, subject to verification (see Section 5).',
     ],
     paragraphs: [
-      'You must provide accurate information when registering. You may not create an account on behalf of someone else, or misrepresent your identity, role, or the property you are listing.',
+      'You must provide accurate information when registering. You may not create an account on behalf of someone else, or misrepresent your identity, role, or the property you are room.',
     ],
   },
   {
@@ -29,11 +29,11 @@ const SECTIONS = [
     heading: '4. Our Commitment to Your Privacy',
     intro: 'We take the protection of your personal information seriously. Specifically:',
     list: [
-      'We only collect the information needed to operate the Platform: your name, email address, phone number, role (student or landlord), and — for landlords — property and contact details for listings you choose to publish.',
+      'We only collect the information needed to operate the Platform: your name, email address, phone number, role (student or landlord), and — for landlords — property and contact details for rooms you choose to publish.',
       'We do not sell, rent, or trade your personal information to any third party, advertiser, or data broker, for any purpose.',
-      "Your personal contact details (phone number, email) are never displayed publicly on the Platform without your action. Students can only see a landlord's listed contact numbers for a property that landlord has chosen to make public on that listing. A landlord cannot see a student's personal details unless that student contacts them directly.",
+      "Your personal contact details (phone number, email) are never displayed publicly on the Platform without your action. Students can only see a landlord's listed contact numbers for a property that landlord has chosen to make public on that room. A landlord cannot see a student's personal details unless that student contacts them directly.",
       'Only Platform administrators can view full account details (e.g. for landlord verification, moderation, or resolving a reported problem), and only for that purpose.',
-      'We do not use your data for advertising, profiling, or any purpose beyond running the marketplace (matching students with listings, enabling contact, verification, and basic safety moderation).',
+      'We do not use your data for advertising, profiling, or any purpose beyond running the marketplace (matching students with rooms, enabling contact, verification, and basic safety moderation).',
       'Account activity (such as searches, page views, and key actions) may be logged internally to help us detect bugs, abuse, and improve the Platform. This activity data is used for those purposes only and is not shared externally.',
       'We also collect anonymous, aggregate visit data (such as which pages are viewed, roughly how long visitors spend on them, and their approximate country) to understand how many people use the Platform and improve it — including from visitors who are just browsing and never create an account. This data is not tied to your identity, is never sold, and is not used to profile individual visitors.',
     ],
@@ -41,7 +41,7 @@ const SECTIONS = [
   {
     heading: '5. Landlord Verification',
     paragraphs: [
-      'To reduce the risk of fraudulent or fake listings, landlord accounts and their listings go through a verification step by Platform administrators before becoming visible to students. Verification is a good-faith safety measure, not a guarantee — students should still exercise their own judgement, ask questions, and, where possible, view a property in person before making any payment.',
+      'To reduce the risk of fraudulent or fake rooms, landlord accounts and their rooms go through a verification step by Platform administrators before becoming visible to students. Verification is a good-faith safety measure, not a guarantee — students should still exercise their own judgement, ask questions, and, where possible, view a property in person before making any payment.',
     ],
   },
   {
@@ -56,10 +56,10 @@ const SECTIONS = [
     heading: '7. Acceptable Use',
     intro: 'You agree not to:',
     list: [
-      'Post false, misleading, or fraudulent listings or information;',
+      'Post false, misleading, or fraudulent rooms or information;',
       'Use the Platform to harass, threaten, or discriminate against any other user;',
       "Attempt to access another user's account or data without authorisation;",
-      'Scrape, copy, or republish Platform content or listings without permission;',
+      'Scrape, copy, or republish Platform content or rooms without permission;',
       'Use the Platform for any unlawful purpose.',
     ],
     paragraphs: [
@@ -67,15 +67,15 @@ const SECTIONS = [
     ],
   },
   {
-    heading: "8. Listings Are the Landlord's Responsibility",
+    heading: "8. Rooms Are the Landlord's Responsibility",
     paragraphs: [
-      'Landlords are solely responsible for the accuracy of the information, photos, and pricing in their listings. The Platform does not inspect properties and makes no guarantee as to the condition, safety, legality, or availability of any listed accommodation. Any dispute regarding a booking or tenancy is between the student and the landlord.',
+      'Landlords are solely responsible for the accuracy of the information, photos, and pricing in their rooms. The Platform does not inspect properties and makes no guarantee as to the condition, safety, legality, or availability of any listed accommodation. Any dispute regarding a booking or tenancy is between the student and the landlord.',
     ],
   },
   {
     heading: '9. No Liability for Transactions',
     paragraphs: [
-      'The Platform is a discovery and listings tool. We are not a party to, and accept no liability for, any rental agreement, payment, or dispute between a student and a landlord. Users are encouraged to verify details independently and exercise reasonable caution, as with any other rental arrangement.',
+      'The Platform is a discovery and rooms tool. We are not a party to, and accept no liability for, any rental agreement, payment, or dispute between a student and a landlord. Users are encouraged to verify details independently and exercise reasonable caution, as with any other rental arrangement.',
     ],
   },
   {

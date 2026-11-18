@@ -195,7 +195,7 @@ export default function LandlordVerification() {
     <div className="max-w-lg mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
       <h2 className="text-lg font-semibold text-primary mb-1">Landlord verification</h2>
       <p className="text-sm text-gray-500 mb-4">
-        You must be verified before you can create property listings.
+        You must be verified before you can create property rooms.
       </p>
 
       <div className={`inline-flex px-3 py-1.5 rounded-full text-sm font-medium ${badge}`}>
@@ -214,7 +214,7 @@ export default function LandlordVerification() {
 
       {record.verification_status === 'approved' && (
         <p className="text-sm text-green-700 mt-3">
-          You're verified and can create property listings from your dashboard.
+          You're verified and can create property rooms from your dashboard.
         </p>
       )}
 

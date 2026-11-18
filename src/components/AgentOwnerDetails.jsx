@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { formatSupabaseError } from '../lib/errorMessages'
 import { useAgentsProgram } from '../hooks/useAgentsProgram'
 
-/** Private owner details for a listing posted by an agent. Only the agent and Campus Crib admins can see this. */
+/** Private owner details for a room posted by an agent. Only the agent and Campus Crib admins can see this. */
 export default function AgentOwnerDetails({ propertyId }) {
   const { enabled: programOn } = useAgentsProgram()
   const [ownerName, setOwnerName] = useState('')
@@ -45,7 +45,7 @@ export default function AgentOwnerDetails({ propertyId }) {
       return
     }
     if (!consent) {
-      setError('Please confirm the owner has agreed to this listing.')
+      setError('Please confirm the owner has agreed to this room.')
       return
     }
     setSaving(true)
@@ -61,7 +61,7 @@ export default function AgentOwnerDetails({ propertyId }) {
     )
     setSaving(false)
     if (saveError) setError(formatSupabaseError(saveError, 'Could not save the owner details.'))
-    else setMessage('Owner details saved. Our team may call the owner to confirm the listing.')
+    else setMessage('Owner details saved. Our team may call the owner to confirm the room.')
   }
 
   if (loading) return null
@@ -73,7 +73,7 @@ export default function AgentOwnerDetails({ propertyId }) {
         <h3 className="font-semibold">Owner details (private)</h3>
       </div>
       <p className="text-sm text-gray-600">
-        Only Campus Crib admins can see this. We use it to confirm the listing with the owner before it goes live. A listing
+        Only Campus Crib admins can see this. We use it to confirm the room with the owner before it goes live. A room
         cannot be approved without it.
       </p>
       {!programOn && (

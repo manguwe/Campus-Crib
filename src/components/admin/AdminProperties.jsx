@@ -72,7 +72,7 @@ export default function AdminProperties() {
   async function handleDecision(propertyId, decision) {
     let reason = null
     if (decision === 'rejected') {
-      reason = window.prompt('Reason for rejecting this listing (shown to the landlord):') || ''
+      reason = window.prompt('Reason for rejecting this room (shown to the landlord):') || ''
       if (reason === null) return
     }
 
@@ -108,7 +108,7 @@ export default function AdminProperties() {
   }
 
   async function handleRemove(propertyId) {
-    if (!window.confirm('Remove this listing permanently? This also deletes its photos/media/reviews.')) {
+    if (!window.confirm('Remove this room permanently? This also deletes its photos/media/reviews.')) {
       return
     }
     setBusyId(propertyId)
@@ -116,7 +116,7 @@ export default function AdminProperties() {
     setBusyId(null)
 
     if (deleteError) {
-      setError(formatSupabaseError(deleteError, 'Could not remove this listing.'))
+      setError(formatSupabaseError(deleteError, 'Could not remove this room.'))
       return
     }
     setProperties((prev) => prev.filter((p) => p.id !== propertyId))
@@ -125,7 +125,7 @@ export default function AdminProperties() {
   if (loading) return <PageLoading label="Loading properties…" />
 
   if (properties.length === 0) {
-    return <EmptyState title="No properties yet" description="Listings created by landlords will show up here for review." />
+    return <EmptyState title="No properties yet" description="Rooms created by landlords will show up here for review." />
   }
 
   return (

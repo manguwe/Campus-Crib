@@ -40,7 +40,7 @@ export default function PushNotificationBanner() {
         {platformState === 'ios-needs-install' ? (
           <>
             <p className="text-sm font-medium text-gray-900">
-              Get notified the moment your listing is approved
+              Get notified the moment your room is approved
             </p>
             <p className="text-sm text-gray-600 mt-1">
               Add Campus Crib to your Home Screen first: tap{' '}

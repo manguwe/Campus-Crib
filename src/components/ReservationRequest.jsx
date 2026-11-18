@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { getReservationStatus, requestReservation } from '../lib/reservations'
 import { formatSupabaseError } from '../lib/errorMessages'
 import { startReservationChat } from '../lib/chat'
+import { fetchMyRoomReservation } from '../lib/roomAccess'
+import ReservationPaymentPanel from './ReservationPaymentPanel'
 import { useNavigate } from 'react-router-dom'
 
 function todayIso() {
@@ -14,6 +16,7 @@ export default function ReservationRequest({ property }) {
   const { user, role } = useAuth()
   const navigate = useNavigate()
   const [reservation, setReservation] = useState(null)
+  const [mine, setMine] = useState(null)
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
   const [moveIn, setMoveIn] = useState('')
@@ -27,12 +30,13 @@ export default function ReservationRequest({ property }) {
     try {
       const status = await getReservationStatus(property.id)
       setReservation(status)
+      if (user) setMine(await fetchMyRoomReservation(property.id, user.id))
     } catch (err) {
       setError(formatSupabaseError(err, 'Could not check reservation status.'))
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [property.id])
+  useEffect(() => { load() }, [property.id, user?.id])
 
   if (role !== 'student' || !user || property.landlord_id === user.id) return null
   if (loading) return <div className="mt-3 text-xs text-gray-400">Checking reservation availability…</div>
@@ -56,12 +60,29 @@ export default function ReservationRequest({ property }) {
 
   return (
     <div className="mt-4 rounded-2xl border border-primary/10 bg-primary/[0.03] p-4">
-      {reserved ? (
+      {mine ? (
+        <div>
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-primary/10 p-2 text-primary"><CheckCircle2 size={19} /></div>
+            <div>
+              <h3 className="font-bold text-primary">Your request for this room</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {mine.status === 'confirmed'
+                  ? 'Your reservation is confirmed.'
+                  : mine.owner_response === 'accepted'
+                    ? 'Your request has been accepted. Pay the reservation fee below to secure the room.'
+                    : 'Your request is waiting for review.'}
+              </p>
+            </div>
+          </div>
+          <ReservationPaymentPanel reservation={mine} onChanged={load} />
+        </div>
+      ) : reserved ? (
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-amber-100 p-2 text-amber-700"><Clock3 size={19} /></div>
           <div>
             <h3 className="font-bold text-primary">Room reserved</h3>
-            <p className="text-sm text-gray-600 mt-1">This room is currently reserved for another student. You can browse other listings or contact Campus Crib support.</p>
+            <p className="text-sm text-gray-600 mt-1">This room is currently reserved for another student. You can browse other rooms or contact Campus Crib support.</p>
           </div>
         </div>
       ) : !open ? (

@@ -67,11 +67,11 @@ export default function PropertyEditor() {
   const [saving, setSaving] = useState(false)
 
   // Step-flow tracking (Part 4): wasCreateRef captures whether THIS page
-  // visit started as a brand-new listing (set once, on mount, never
+  // visit started as a brand-new room (set once, on mount, never
   // updated again). When isCreate later flips to false - i.e. the
   // create-then-navigate below completes and the property has loaded -
   // we show a one-time "unlocked" confirmation and scroll to the
-  // Photos/Contacts section. Editing a pre-existing listing later never
+  // Photos/Contacts section. Editing a pre-existing room later never
   // triggers this, since wasCreateRef starts false on that visit.
   const wasCreateRef = useRef(isCreate)
   const unlockHandledRef = useRef(false)
@@ -95,7 +95,7 @@ export default function PropertyEditor() {
   useEffect(() => {
     async function loadCreateGuard() {
       // A pending/rejected landlord could still type this URL directly
-      // even though the dashboard hides the "+ New listing" link - check
+      // even though the dashboard hides the "+ Add room" link - check
       // their verification status here too, so the UI blocks it clearly
       // instead of letting them fill out a form that will fail at the
       // database with an opaque RLS error on submit. The database check
@@ -115,7 +115,7 @@ export default function PropertyEditor() {
       setLoading(true)
       // RLS restricts this to properties the current user owns (or any
       // approved one) - if this id belongs to someone else's non-approved
-      // listing, `data` comes back null rather than leaking the row.
+      // room, `data` comes back null rather than leaking the row.
       const { data, error } = await supabase
         .from('properties')
         .select('id, title, description, price, currency, address_text, public_latitude, public_longitude, amenities, building_type, occupancy, toilet_shared_by, walk_minutes_to_campus, primary_campus_id, availability_status, status, rejection_reason')
@@ -322,7 +322,7 @@ export default function PropertyEditor() {
       setSaving(false)
 
       if (insertError) {
-        setError(formatSupabaseError(insertError, 'Could not create this listing.'))
+        setError(formatSupabaseError(insertError, 'Could not create this room.'))
         return
       }
 
@@ -334,7 +334,7 @@ export default function PropertyEditor() {
         })
         if (locationError) {
           setSaving(false)
-          setError(formatSupabaseError(locationError, 'Listing saved, but the private location could not be saved.'))
+          setError(formatSupabaseError(locationError, 'Room saved, but the private location could not be saved.'))
           return
         }
       }
@@ -367,7 +367,7 @@ export default function PropertyEditor() {
       p_longitude: form.longitude === '' ? null : Number(form.longitude),
     })
     if (locationError) {
-      setError(formatSupabaseError(locationError, 'Listing saved, but the private location could not be saved.'))
+      setError(formatSupabaseError(locationError, 'Room saved, but the private location could not be saved.'))
       return
     }
 
@@ -382,7 +382,7 @@ export default function PropertyEditor() {
   if (notFound) {
     return (
       <div className="max-w-lg mx-auto text-center">
-        <p className="text-gray-600">That listing doesn't exist, or isn't yours to edit.</p>
+        <p className="text-gray-600">That room doesn't exist, or isn't yours to edit.</p>
         <Link to="/landlord" className="text-sm font-medium text-accent underline mt-2 inline-block">
           Back to dashboard
         </Link>
@@ -396,8 +396,8 @@ export default function PropertyEditor() {
         <h2 className="text-lg font-semibold text-primary mb-2">Verification required</h2>
         <p className="text-sm text-gray-600">
           {verificationStatus === 'rejected'
-            ? 'Your ID verification was rejected. Resubmit your document before creating a listing.'
-            : 'You need to be a verified landlord before you can create a listing. Your account is currently ' +
+            ? 'Your ID verification was rejected. Resubmit your document before creating a room.'
+            : 'You need to be a verified landlord before you can create a room. Your account is currently ' +
               (verificationStatus || 'unverified') +
               '.'}
         </p>
@@ -419,7 +419,7 @@ export default function PropertyEditor() {
             {isCreate ? 1 : 2}
           </span>
           <p className="text-sm font-medium text-gray-700">
-            {isCreate ? 'Step 1 of 2: Listing details' : 'Step 2 of 2: Photos & contact numbers'}
+            {isCreate ? 'Step 1 of 2: Room details' : 'Step 2 of 2: Photos & contact numbers'}
           </p>
         </div>
       )}
@@ -427,7 +427,7 @@ export default function PropertyEditor() {
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-semibold text-primary">
-            {isCreate ? 'Create a listing' : 'Edit listing'}
+            {isCreate ? 'Create a room' : 'Edit room'}
           </h2>
           {!isCreate && (
             <span
@@ -445,7 +445,7 @@ export default function PropertyEditor() {
         {!isCreate && status !== 'approved' && (
           <p className="text-xs text-gray-500 mb-4">
             Edits are saved immediately but don't change moderation status - an admin still needs to
-            review this listing.
+            review this room.
           </p>
         )}
 
@@ -723,7 +723,7 @@ export default function PropertyEditor() {
           >
             {saving ? (
               <span className="inline-flex items-center gap-1.5"><Loader2 size={14} className="animate-spin" />Saving…</span>
-            ) : isCreate ? 'Create listing' : 'Save changes'}
+            ) : isCreate ? 'Create room' : 'Save changes'}
           </button>
         </div>
       </form>
@@ -734,7 +734,7 @@ export default function PropertyEditor() {
             <Lock size={20} className="text-gray-400" />
           </div>
           <p className="text-sm font-medium text-gray-500 max-w-sm mx-auto">
-            Save your listing details above first — then you'll be able to add photos and contact
+            Save your room details above first — then you'll be able to add photos and contact
             numbers here.
           </p>
         </div>

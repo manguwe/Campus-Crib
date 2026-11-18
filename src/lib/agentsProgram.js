@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient'
 
 // The agents programme has an on/off switch controlled by admins. Off means "paused": agent signup is hidden
-// and the database blocks agents from adding or editing listings.
+// and the database blocks agents from adding or editing rooms.
 
 export async function fetchAgentsProgramEnabled() {
   const { data, error } = await supabase.rpc('agents_program_enabled')
@@ -14,7 +14,7 @@ export async function setAgentsProgramEnabled(enabled) {
   return { error }
 }
 
-// Second switch: whether agent listings are shown to the public. Defaults to visible if it cannot be read.
+// Second switch: whether agent rooms are shown to the public. Defaults to visible if it cannot be read.
 export async function fetchAgentListingsVisible() {
   const { data, error } = await supabase.rpc('agent_listings_visible')
   if (error) return true

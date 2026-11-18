@@ -16,7 +16,7 @@ const emptyDraft = { phone_number: '', contact_type: 'call', label: '' }
 
 /** Lives on the property editor, in edit mode only (mirrors
  * PropertyMediaManager's pattern - needs a real property id to attach
- * rows to, so it isn't available until the listing has been created). */
+ * rows to, so it isn't available until the room has been created). */
 export default function PropertyContactsManager({ propertyId }) {
   const [contacts, setContacts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -109,7 +109,7 @@ export default function PropertyContactsManager({ propertyId }) {
           Contact numbers
         </h3>
         <p className="text-xs text-gray-500 mt-0.5">
-          Add one or more numbers students can use to reach you about this listing - e.g. your own
+          Add one or more numbers students can use to reach you about this room - e.g. your own
           number for calls, and a caretaker's number for WhatsApp. If you don't add any, students will
           see your registration phone number instead.
         </p>

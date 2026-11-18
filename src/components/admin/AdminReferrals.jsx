@@ -74,7 +74,7 @@ export default function AdminReferrals() {
         <Stat label="Referred users" value={summary?.referredUsers ?? 0} />
         <Stat label="Signups" value={summary?.signups ?? 0} />
         <Stat label="Feedback" value={summary?.feedback ?? 0} />
-        <Stat label="Listings" value={summary?.listings ?? 0} />
+        <Stat label="Rooms" value={summary?.rooms ?? 0} />
       </div>
 
       {showForm && <form onSubmit={createSource} className="bg-white border border-gray-200 rounded-xl p-5 grid sm:grid-cols-2 gap-4">
@@ -88,7 +88,7 @@ export default function AdminReferrals() {
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 font-medium">Source funnel</div>
-        <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="bg-gray-50 text-gray-500"><tr>{['Source','Visits','Users','Interest','Signups','Profiles','Feedback','Listings','Invites'].map(h => <th key={h} className="text-left px-3 py-2 font-medium whitespace-nowrap">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{funnel.map(row => <tr key={row.id}><td className="px-3 py-2 font-medium text-gray-800 whitespace-nowrap">{row.name}</td><td className="px-3 py-2">{row.visits}</td><td className="px-3 py-2">{row.users}</td><td className="px-3 py-2">{row.interest}</td><td className="px-3 py-2">{row.signups}</td><td className="px-3 py-2">{row.profiles}</td><td className="px-3 py-2">{row.feedback}</td><td className="px-3 py-2">{row.listings}</td><td className="px-3 py-2">{row.invites}</td></tr>)}{!funnel.length && <tr><td colSpan="9" className="px-3 py-5 text-gray-500">No source activity yet.</td></tr>}</tbody></table></div>
+        <div className="overflow-x-auto"><table className="w-full text-xs"><thead className="bg-gray-50 text-gray-500"><tr>{['Source','Visits','Users','Interest','Signups','Profiles','Feedback','Rooms','Invites'].map(h => <th key={h} className="text-left px-3 py-2 font-medium whitespace-nowrap">{h}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{funnel.map(row => <tr key={row.id}><td className="px-3 py-2 font-medium text-gray-800 whitespace-nowrap">{row.name}</td><td className="px-3 py-2">{row.visits}</td><td className="px-3 py-2">{row.users}</td><td className="px-3 py-2">{row.interest}</td><td className="px-3 py-2">{row.signups}</td><td className="px-3 py-2">{row.profiles}</td><td className="px-3 py-2">{row.feedback}</td><td className="px-3 py-2">{row.rooms}</td><td className="px-3 py-2">{row.invites}</td></tr>)}{!funnel.length && <tr><td colSpan="9" className="px-3 py-5 text-gray-500">No source activity yet.</td></tr>}</tbody></table></div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -101,7 +101,7 @@ export default function AdminReferrals() {
                 <div><p className="font-medium text-gray-900">{source.name}</p><p className="text-xs text-gray-500">{source.type} · <span className="font-mono">{source.code}</span></p></div>
                 <button onClick={() => copy(url)} className="inline-flex items-center gap-1.5 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50"><Copy size={13} /> Copy link</button>
               </div>
-              <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500"><span>{source.visits} visits</span><span>{source.users} users</span><span>{source.signups} signups</span><span>{source.feedback} feedback</span><span>{source.listings} listings</span></div>
+              <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500"><span>{source.visits} visits</span><span>{source.users} users</span><span>{source.signups} signups</span><span>{source.feedback} feedback</span><span>{source.rooms} rooms</span></div>
               <div className="flex items-center gap-1 text-xs text-gray-400 break-all"><Link2 size={13} />{url}</div>
             </div>
           })}

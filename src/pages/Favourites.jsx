@@ -97,9 +97,9 @@ export default function Favourites() {
       ) : properties.length === 0 ? (
         <EmptyState
           icon={Heart}
-          title="No saved listings yet"
+          title="No saved rooms yet"
           description="Browse properties and tap the heart icon to save one here for later."
-          action={{ label: 'Browse listings', to: '/browse' }}
+          action={{ label: 'Browse rooms', to: '/browse' }}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">

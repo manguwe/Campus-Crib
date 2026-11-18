@@ -106,7 +106,7 @@ export default function PropertyMediaManager({ propertyId, landlordId }) {
         <h3 className="font-medium text-gray-900">Photos & videos</h3>
       </div>
       <p className="text-xs text-gray-500 mb-3">
-        Listings with a few clear photos get noticeably more interest from students.
+        Rooms with a few clear photos get noticeably more interest from students.
       </p>
 
       <ErrorBanner message={error} className="mb-3" />

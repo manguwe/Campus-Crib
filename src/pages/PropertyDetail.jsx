@@ -15,6 +15,7 @@ import RatingSummary from '../components/RatingSummary'
 import AvailabilityStatusBadge from '../components/AvailabilityStatusBadge'
 import ReportListingButton from '../components/ReportListingButton'
 import ReservationRequest from '../components/ReservationRequest'
+import { canViewRoomDirections } from '../lib/roomAccess'
 import Lightbox from '../components/Lightbox'
 import PageLoading from '../components/ui/PageLoading'
 
@@ -28,6 +29,13 @@ export default function PropertyDetail() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [rating, setRating] = useState(null)
+  const [canSeeLocation, setCanSeeLocation] = useState(false)
+
+  // Map and directions only open once the student's reservation is confirmed and payment is verified.
+  useEffect(() => {
+    if (!property?.id || !user) { setCanSeeLocation(false); return }
+    canViewRoomDirections(property.id).then(setCanSeeLocation).catch(() => setCanSeeLocation(false))
+  }, [property?.id, user?.id])
 
   const { favouriteIds, toggleFavourite } = useFavourites()
 
@@ -35,7 +43,7 @@ export default function PropertyDetail() {
     async function load() {
       setLoading(true)
       // RLS returns this row only if it's approved, or the caller owns it
-      // / is an admin - a pending listing's id just comes back empty for
+      // / is an admin - a pending room's id just comes back empty for
       // anyone else, same as a bad id would.
       const { data, error } = await supabase.from('properties').select('id, landlord_id, title, description, price, currency, address_text, room_type, amenities, status, created_at, updated_at, building_type, occupancy, toilet_shared_by, walk_minutes_to_campus, primary_campus_id, availability_status, rejection_reason, agent_fee_amount, agent_fee_currency, public_latitude, public_longitude').eq('id', id).single()
 
@@ -60,18 +68,18 @@ export default function PropertyDetail() {
     load()
   }, [id])
 
-  if (loading) return <PageLoading label="Loading listing…" />
+  if (loading) return <PageLoading label="Loading room…" />
 
   if (notFound) {
     return (
       <div className="max-w-lg mx-auto text-center">
-        <p className="text-gray-600">That listing doesn't exist, or isn't published yet.</p>
+        <p className="text-gray-600">That room doesn't exist, or isn't published yet.</p>
         <Link
           to="/browse"
           className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-150"
         >
           <ArrowLeft size={14} />
-          Back to listings
+          Back to rooms
         </Link>
       </div>
     )
@@ -103,7 +111,7 @@ export default function PropertyDetail() {
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-150 hover:border-gray-300 transition-colors"
         >
           <ArrowLeft size={14} />
-          Back to listings
+          Back to rooms
         </Link>
       </div>
 
@@ -132,7 +140,7 @@ export default function PropertyDetail() {
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-8 text-center text-sm text-gray-400">
-          No photos uploaded for this listing yet.
+          No photos uploaded for this room yet.
         </div>
       )}
 
@@ -217,7 +225,7 @@ export default function PropertyDetail() {
           <PropertyAccessPanel property={property} />
           <ReservationRequest property={property} />
 
-          {/* Only a logged-in student, viewing a listing that isn't
+          {/* Only a logged-in student, viewing a room that isn't
               their own, can report it - not guests, not the landlord
               themselves, not admins. */}
           {role === 'student' && user && user.id !== property.landlord_id && (
@@ -230,11 +238,17 @@ export default function PropertyDetail() {
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
         <h2 className="text-sm font-medium text-primary mb-3">Location</h2>
-        <GoogleMapPin latitude={property.public_latitude} longitude={property.public_longitude} title={property.title} />
-        {property.public_latitude != null && property.public_longitude != null && (
-          <DirectionsPanel
-            destination={{ lat: Number(property.public_latitude), lng: Number(property.public_longitude) }}
-          />
+        {canSeeLocation ? (
+          <>
+            <GoogleMapPin latitude={property.public_latitude} longitude={property.public_longitude} title={property.title} />
+            {property.public_latitude != null && property.public_longitude != null && (
+              <DirectionsPanel
+                destination={{ lat: Number(property.public_latitude), lng: Number(property.public_longitude) }}
+              />
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-gray-600">The map and directions unlock once your reservation is confirmed and your payment proof is verified.</p>
         )}
       </div>
 

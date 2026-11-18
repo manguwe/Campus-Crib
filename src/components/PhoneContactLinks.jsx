@@ -2,7 +2,7 @@ import { Phone, MessageSquare } from 'lucide-react'
 import { telLink, smsLink } from '../lib/phone'
 
 /** Simple Call + Text link pair for a single phone number - used as the
- * fallback when a listing has no property_contacts entries (see
+ * fallback when a room has no property_contacts entries (see
  * ContactLandlordButton), and anywhere else a bare phone number needs to
  * be clickable. */
 export default function PhoneContactLinks({ phone, className = '' }) {

@@ -14,6 +14,7 @@ import AvailabilityStatusControl from '../components/AvailabilityStatusControl'
 import PushNotificationBanner from '../components/PushNotificationBanner'
 import PushNotificationToggle from '../components/PushNotificationToggle'
 import ListingStatsModal from '../components/ListingStatsModal'
+import LandlordRoomMetrics from '../components/LandlordRoomMetrics'
 import { useAgentProfile } from '../hooks/useAgentProfile'
 import { useAgentsProgram } from '../hooks/useAgentsProgram'
 import { useAgentAccess } from '../hooks/useAgentAccess'
@@ -49,7 +50,7 @@ export default function LandlordDashboard() {
           .eq('id', user.id)
           .maybeSingle(),
         // RLS already restricts this to "approved OR mine" - the .eq below
-        // is just to skip fetching other landlords' approved listings too,
+        // is just to skip fetching other landlords' approved rooms too,
         // since this page only cares about the current landlord's own.
         supabase
           .from('properties')
@@ -58,7 +59,7 @@ export default function LandlordDashboard() {
           )
           .eq('landlord_id', user.id)
           .order('created_at', { ascending: false }),
-        // Self-scoped to the caller's own listings server-side (see
+        // Self-scoped to the caller's own rooms server-side (see
         // landlord_property_stats() in 20_visitor_analytics.sql) - a
         // landlord can't use this to see another landlord's numbers.
         supabase.rpc('landlord_property_stats'),
@@ -67,7 +68,7 @@ export default function LandlordDashboard() {
     if (lpError) setError(formatSupabaseError(lpError))
     else setVerification(lp)
 
-    if (propsError) setError((prev) => prev || formatSupabaseError(propsError, 'Could not load your listings.'))
+    if (propsError) setError((prev) => prev || formatSupabaseError(propsError, 'Could not load your rooms.'))
     else setProperties(props)
 
     if (!statsError && stats) {
@@ -83,14 +84,14 @@ export default function LandlordDashboard() {
   }, [user?.id])
 
   async function handleDelete(propertyId) {
-    if (!window.confirm('Delete this listing? This also removes its photos/videos and reviews.')) {
+    if (!window.confirm('Delete this room? This also removes its photos/videos and reviews.')) {
       return
     }
     setDeletingId(propertyId)
     const { error: deleteError } = await supabase.from('properties').delete().eq('id', propertyId)
     setDeletingId(null)
     if (deleteError) {
-      setError(formatSupabaseError(deleteError, 'Could not delete this listing.'))
+      setError(formatSupabaseError(deleteError, 'Could not delete this room.'))
       return
     }
     setProperties((prev) => prev.filter((p) => p.id !== propertyId))
@@ -130,7 +131,7 @@ export default function LandlordDashboard() {
 
       {agentPaused && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
-          The agent program is paused right now. You can still see your listings, but adding or editing listings is switched off until it resumes.
+          The agent program is paused right now. You can still see your rooms, but adding or editing rooms is switched off until it resumes.
         </div>
       )}
 
@@ -140,8 +141,8 @@ export default function LandlordDashboard() {
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <span>
             {verification?.verification_status === 'rejected'
-              ? 'Your verification was rejected. Resubmit your ID document to start listing properties.'
-              : 'Your account is awaiting verification. You can create listings once an admin approves your ID document.'}
+              ? 'Your verification was rejected. Resubmit your ID document to start room properties.'
+              : 'Your account is awaiting verification. You can create rooms once an admin approves your ID document.'}
           </span>
           <Link
             to="/landlord/verification"
@@ -152,17 +153,19 @@ export default function LandlordDashboard() {
         </div>
       )}
 
+      <LandlordRoomMetrics />
+
       <div className="flex items-center justify-between">
-        <h3 className="font-medium text-gray-900">Your listings</h3>
+        <h3 className="font-medium text-gray-900">Your rooms</h3>
         {isVerified && !agentPaused && !agentLocked ? (
           <Link
             to="/landlord/properties/new"
             className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
           >
-            + New listing
+            + Add room
           </Link>
         ) : (
-          <span className="text-xs text-gray-400">{agentPaused ? 'Agent program is paused' : agentLocked ? 'Activate your agent account to add listings' : 'Verify your account to create listings'}</span>
+          <span className="text-xs text-gray-400">{agentPaused ? 'Agent program is paused' : agentLocked ? 'Activate your agent account to add rooms' : 'Verify your account to create rooms'}</span>
         )}
       </div>
 
@@ -171,13 +174,13 @@ export default function LandlordDashboard() {
       {properties.length === 0 ? (
         <EmptyState
           icon={HomeIcon}
-          title="You haven't created any listings yet"
+          title="You haven't created any rooms yet"
           description={
             isVerified
-              ? "Once you add a listing, it'll show up here for you to manage."
-              : 'Get verified first, then create your first listing.'
+              ? "Once you add a room, it'll show up here for you to manage."
+              : 'Get verified first, then create your first room.'
           }
-          action={isVerified && !agentPaused && !agentLocked ? { label: '+ New listing', to: '/landlord/properties/new' } : undefined}
+          action={isVerified && !agentPaused && !agentLocked ? { label: '+ Add room', to: '/landlord/properties/new' } : undefined}
         />
       ) : (
         <ul className="space-y-3">

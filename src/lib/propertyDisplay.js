@@ -24,7 +24,7 @@ export function occupancyLabel(occupancy) {
  * primary_campus_id (resolved by the caller via useCampuses(), since
  * this file has no data-fetching of its own) to name the actual campus
  * in the walk-time text. Falls back to the old generic "to campus"
- * wording for any listing that doesn't have that field set yet.
+ * wording for any room that doesn't have that field set yet.
  */
 export function propertySummaryParts(property, campusName) {
   const parts = []

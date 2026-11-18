@@ -5,8 +5,8 @@ import { formatSupabaseError } from '../lib/errorMessages'
 import { REPORT_REASON_OPTIONS } from '../lib/constants'
 import ErrorBanner from './ui/ErrorBanner'
 
-/** Subtle "Report this listing" text link + modal, shown only to a
- * logged-in student viewing someone else's listing (role check happens
+/** Subtle "Report this room" text link + modal, shown only to a
+ * logged-in student viewing someone else's room (role check happens
  * in the parent, PropertyDetail.jsx). Checks for an existing pending
  * report from this student on this property before offering the
  * button, so the same person can't submit duplicates in quick
@@ -23,7 +23,7 @@ export default function ReportListingButton({ propertyId, userId }) {
       setChecking(true)
       // RLS lets a reporter read their own rows (see
       // 19_property_reports_table.sql), so this only ever returns this
-      // student's own pending report on this listing, if any.
+      // student's own pending report on this room, if any.
       const { data } = await supabase
         .from('property_reports')
         .select('id')
@@ -47,7 +47,7 @@ export default function ReportListingButton({ propertyId, userId }) {
   if (checking) return null
 
   if (alreadyReported) {
-    return <p className="text-xs text-gray-400">You've already reported this listing.</p>
+    return <p className="text-xs text-gray-400">You've already reported this room.</p>
   }
 
   return (
@@ -58,7 +58,7 @@ export default function ReportListingButton({ propertyId, userId }) {
         className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-gray-600"
       >
         <Flag size={12} />
-        Report this listing
+        Report this room
       </button>
 
       {open && (
@@ -126,7 +126,7 @@ function ReportModal({ propertyId, userId, onClose, onSubmitted }) {
     >
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <p className="font-medium text-gray-900">Report this listing</p>
+          <p className="font-medium text-gray-900">Report this room</p>
           <button
             onClick={onClose}
             aria-label="Close"
@@ -148,7 +148,7 @@ function ReportModal({ propertyId, userId, onClose, onSubmitted }) {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  What's wrong with this listing?
+                  What's wrong with this room?
                 </label>
                 <div className="space-y-2">
                   {REPORT_REASON_OPTIONS.map((opt) => (
