@@ -1,6 +1,6 @@
 import { AVAILABILITY_STATUS_BADGE_STYLES, AVAILABILITY_STATUS_LABELS } from '../lib/constants'
 
-/** Small colour-coded pill showing a listing's availability status.
+/** Small colour-coded pill showing a room's availability status.
  * Renders nothing if `status` is missing so older cached rows without
  * the column selected yet just quietly show no badge. */
 export default function AvailabilityStatusBadge({ status, className = '' }) {

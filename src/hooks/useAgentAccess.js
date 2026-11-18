@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchMyAgentAccess } from '../lib/agentsProgram'
 
-/** The signed-in agent's access to post listings (fee, payment status, dates). null for people who are not agents. */
+/** The signed-in agent's access to post rooms (fee, payment status, dates). null for people who are not agents. */
 export function useAgentAccess(userId) {
   const [access, setAccess] = useState(null)
   const [loading, setLoading] = useState(Boolean(userId))

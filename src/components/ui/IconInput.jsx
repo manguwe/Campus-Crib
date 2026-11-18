@@ -1,6 +1,6 @@
 /** Text/number/tel/email input with an inline leading icon and a clear
  * accent-teal focus ring, used across the landlord-facing forms
- * (listing editor, verification) to bring plain inputs up to the same
+ * (room editor, verification) to bring plain inputs up to the same
  * visual bar as the rest of the app's polished sections. Just a
  * lightly-styled native <input> - accepts every normal input prop. */
 export default function IconInput({ icon: Icon, className = '', ...props }) {

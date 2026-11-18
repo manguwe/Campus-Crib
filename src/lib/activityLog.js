@@ -7,7 +7,7 @@ import { getSessionId, getCachedCountry } from './visitorSession'
  * - Never `await` this in a caller - it returns nothing meaningful.
  * - A failed insert is swallowed (just console.warn'd), never thrown,
  *   so a logging hiccup can never break the actual user-facing action
- *   it's attached to (submitting a review, saving a listing, etc).
+ *   it's attached to (submitting a review, saving a room, etc).
  *
  * user_id/role are read from the identity last pushed in by AuthContext
  * (see activityIdentity.js) - both are null for a guest, which the

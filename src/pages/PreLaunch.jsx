@@ -32,7 +32,7 @@ const roleQuestions = {
     'How do you currently find students for vacant rooms?',
     'What is difficult about advertising or filling rooms?',
     'What information do you need from a prospective tenant?',
-    'Which Campus Crib features would help you manage your listings?',
+    'Which Campus Crib features would help you manage your rooms?',
   ],
   caretaker: [
     'How do you currently help students find available rooms?',

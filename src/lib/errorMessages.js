@@ -28,11 +28,11 @@ const PATTERNS = [
   },
   {
     test: /owner details and consent are required/i,
-    message: 'This is an agent listing. Ask the agent to add the owner\'s name, phone and consent before it can be approved.',
+    message: 'This is an agent room. Ask the agent to add the owner\'s name, phone and consent before it can be approved.',
   },
   {
     test: /agent program is currently paused/i,
-    message: 'The agent program is paused right now, so listings cannot be added or edited. Please check back soon.',
+    message: 'The agent program is paused right now, so rooms cannot be added or edited. Please check back soon.',
   },
 
   // Postgres constraint errors

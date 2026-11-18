@@ -47,7 +47,7 @@ export default function CompletePhoneGate({ children }) {
         <h2 className="text-xl font-bold text-primary">Add your mobile number</h2>
         <p className="text-sm text-gray-600 mt-2">
           Your Campus Crib account was created without a mobile number. We now require one so the
-          Campus Crib team can contact you about reservations, listings, complaints, or account support.
+          Campus Crib team can contact you about reservations, rooms, complaints, or account support.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">

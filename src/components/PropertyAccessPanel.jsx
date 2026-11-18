@@ -60,13 +60,13 @@ export default function PropertyAccessPanel({ property }) {
     return (
       <div className="mt-4 rounded-2xl border border-accent/20 bg-accent/5 p-4 animate-fade-in-up">
         <div className="flex items-center gap-2 text-accent font-bold"><CheckCircle2 size={18} /> Contact access approved</div>
-        <p className="text-xs text-gray-600 mt-1">This listing's private contact and exact location are now unlocked for your account.</p>
+        <p className="text-xs text-gray-600 mt-1">This room's private contact and exact location are now unlocked for your account.</p>
         <div className="mt-3 grid gap-2 text-sm">
           {privateAccess.landlord_phone && <a className="inline-flex items-center gap-2 font-semibold text-primary" href={`tel:${privateAccess.landlord_phone}`}><Phone size={15}/> {privateAccess.landlord_phone}</a>}
           <div className="text-gray-700"><MapPin size={15} className="inline mr-1"/> Exact coordinates: {privateAccess.latitude?.toFixed(6)}, {privateAccess.longitude?.toFixed(6)}</div><div className="mt-3 rounded-xl overflow-hidden border border-gray-200"><GoogleMapPin latitude={privateAccess.latitude} longitude={privateAccess.longitude} title={property.title} /></div>
           {contacts.map((c) => <a key={c.id} className="inline-flex items-center gap-2 text-gray-700" href={c.contact_type === 'whatsapp' ? `https://wa.me/${c.phone_number.replace(/\D/g,'')}` : `tel:${c.phone_number}`} target={c.contact_type === 'whatsapp' ? '_blank' : undefined} rel="noreferrer"><Phone size={14}/> {c.phone_number} · {c.label || c.contact_type}</a>)}
           <a className="inline-flex items-center gap-2 text-accent font-medium" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${privateAccess.latitude},${privateAccess.longitude}`}><ExternalLink size={14}/> Open exact location in Maps</a>
-          <Link to={`/messages?property=${property.id}`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-white px-4 py-2.5 font-bold mt-2"><MessageCircle size={15}/> Chat about this listing</Link>
+          <Link to={`/messages?property=${property.id}`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-white px-4 py-2.5 font-bold mt-2"><MessageCircle size={15}/> Chat about this room</Link>
         </div>
       </div>
     )
@@ -85,7 +85,7 @@ export default function PropertyAccessPanel({ property }) {
   if (role !== 'student') return null
 
   if (fee <= 0) {
-    return <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700"><ShieldCheck className="inline mr-2 text-accent" size={17}/>This listing has no agent fee. Contact access is being prepared by the administrator.</div>
+    return <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700"><ShieldCheck className="inline mr-2 text-accent" size={17}/>This room has no agent fee. Contact access is being prepared by the administrator.</div>
   }
 
   return (

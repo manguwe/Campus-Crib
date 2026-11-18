@@ -37,11 +37,11 @@ const EVENT_LABEL = {
   access_waived: 'Fee waived by an admin',
   access_revoked: 'Access switched off by an admin',
   access_restored: 'Access restored by an admin',
-  listing_created: 'Created a listing',
-  listing_edited: 'Edited a listing',
-  listing_pending: 'Listing sent for approval',
-  listing_approved: 'Listing approved',
-  listing_rejected: 'Listing rejected',
+  listing_created: 'Created a room',
+  listing_edited: 'Edited a room',
+  listing_pending: 'Room sent for approval',
+  listing_approved: 'Room approved',
+  listing_rejected: 'Room rejected',
   owner_details_saved: 'Saved owner details',
   media_added: 'Added a photo or video',
   media_removed: 'Removed a photo or video',
@@ -147,14 +147,14 @@ export default function AdminAgents() {
     return {
       agents: agents.length,
       awaiting: agents.filter((a) => verifications[a.id] !== 'approved').length,
-      listings: all.reduce((sum, s) => sum + Number(s.listings_total || 0), 0),
+      rooms: all.reduce((sum, s) => sum + Number(s.listings_total || 0), 0),
       reservations: all.reduce((sum, s) => sum + Number(s.reservations_total || 0), 0),
     }
   }, [agents, verifications, stats])
 
   async function toggleProgram() {
     const next = !enabled
-    if (!next && !window.confirm('Pause the agent program? Agents will no longer be able to add or edit listings, and agent signup will be hidden.')) return
+    if (!next && !window.confirm('Pause the agent program? Agents will no longer be able to add or edit rooms, and agent signup will be hidden.')) return
     setBusySwitch('program')
     setMessage('')
     const { error: saveError } = await setAgentsProgramEnabled(next)
@@ -168,14 +168,14 @@ export default function AdminAgents() {
 
   async function toggleVisibility() {
     const next = !listingsVisible
-    if (!next && !window.confirm('Hide all agent listings from the public? Students will no longer see them, including on existing reservations.')) return
+    if (!next && !window.confirm('Hide all agent rooms from the public? Students will no longer see them, including on existing reservations.')) return
     setBusySwitch('visibility')
     setMessage('')
     const { error: saveError } = await setAgentListingsVisible(next)
-    if (saveError) setMessage(formatSupabaseError(saveError, 'Could not change agent listing visibility.'))
+    if (saveError) setMessage(formatSupabaseError(saveError, 'Could not change agent room visibility.'))
     else {
       setListingsVisible(next)
-      setMessage(next ? 'Agent listings are now visible to the public.' : 'Agent listings are now hidden from the public.')
+      setMessage(next ? 'Agent rooms are now visible to the public.' : 'Agent rooms are now hidden from the public.')
     }
     setBusySwitch('')
   }
@@ -184,7 +184,7 @@ export default function AdminAgents() {
     const suspended = Boolean(agent.profiles?.is_suspended)
     let reason = null
     if (suspended) {
-      if (!window.confirm('Unsuspend this agent? Their listings become visible again.')) return
+      if (!window.confirm('Unsuspend this agent? Their rooms become visible again.')) return
     } else {
       reason = window.prompt('Reason for suspending this agent (shown to them):')
       if (reason === null) return
@@ -246,8 +246,8 @@ export default function AdminAgents() {
           switchLoading
             ? 'Checking…'
             : enabled
-              ? 'ON: agents can sign up and post listings (every listing still needs admin approval).'
-              : 'PAUSED: agent signup is hidden and agents cannot add or edit listings.'
+              ? 'ON: agents can sign up and post rooms (every room still needs admin approval).'
+              : 'PAUSED: agent signup is hidden and agents cannot add or edit rooms.'
         }
         buttonLabel={enabled ? 'Pause program' : 'Turn program on'}
         onClick={toggleProgram}
@@ -257,13 +257,13 @@ export default function AdminAgents() {
       />
 
       <SwitchCard
-        title="Agent listings in public"
+        title="Agent rooms in public"
         description={
           listingsVisible
-            ? 'VISIBLE: approved agent listings show to students like any other listing.'
-            : 'HIDDEN: students cannot see any agent listing. Agents and admins still can.'
+            ? 'VISIBLE: approved agent rooms show to students like any other room.'
+            : 'HIDDEN: students cannot see any agent room. Agents and admins still can.'
         }
-        buttonLabel={listingsVisible ? 'Hide agent listings' : 'Show agent listings'}
+        buttonLabel={listingsVisible ? 'Hide agent rooms' : 'Show agent rooms'}
         onClick={toggleVisibility}
         busy={busySwitch === 'visibility'}
         tone={listingsVisible ? 'warn' : 'primary'}
@@ -275,7 +275,7 @@ export default function AdminAgents() {
         {[
           ['Agents', totals.agents],
           ['Not yet verified', totals.awaiting],
-          ['Agent listings', totals.listings],
+          ['Agent rooms', totals.rooms],
           ['Reservations', totals.reservations],
         ].map(([label, value]) => (
           <div key={label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
@@ -319,10 +319,10 @@ export default function AdminAgents() {
                   </div>
                 </div>
                 <p className="text-xs text-gray-600 mt-3">
-                  Listings: {s.listings_total} total · {s.listings_live} live · {s.listings_pending} awaiting approval · {s.listings_rejected} rejected
+                  Rooms: {s.listings_total} total · {s.listings_live} live · {s.listings_pending} awaiting approval · {s.listings_rejected} rejected
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
-                  Enquiries: {s.enquiries} · Reservations: {s.reservations_total} ({s.reservations_confirmed} confirmed) · Last listing:{' '}
+                  Enquiries: {s.enquiries} · Reservations: {s.reservations_total} ({s.reservations_confirmed} confirmed) · Last room:{' '}
                   {s.last_listing_at ? new Date(s.last_listing_at).toLocaleDateString() : 'none yet'}
                 </p>
                 {!a.declaration_accepted && (
@@ -347,7 +347,7 @@ export default function AdminAgents() {
                         {a.access_waived ? 'Stop waiving fee' : 'Waive fee'}
                       </button>
                       <button
-                        onClick={() => changeAccess(a, { waived: false, revoked: true }, 'Switch off this agent\'s access? They will not be able to add or edit listings.')}
+                        onClick={() => changeAccess(a, { waived: false, revoked: true }, 'Switch off this agent\'s access? They will not be able to add or edit rooms.')}
                         disabled={busyAgentId === a.id}
                         className="text-xs font-medium rounded-lg border border-gray-300 px-3 py-1.5 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                       >

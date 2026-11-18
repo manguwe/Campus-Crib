@@ -111,7 +111,7 @@ export default function AiSearchBar({ filters, onChange }) {
 
     // Only translates free text into structured filter values - the
     // actual search still runs through Browse's normal Supabase query,
-    // so the AI can never surface a listing that doesn't really match.
+    // so the AI can never surface a room that doesn't really match.
     const { data, error: invokeError } = await supabase.functions.invoke('ai-search-listings', {
       body: { query: query.trim(), vocabulary },
     })

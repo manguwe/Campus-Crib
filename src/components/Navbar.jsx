@@ -40,7 +40,7 @@ export default function Navbar() {
 
   const dashboardPath = dashboardPathForRole(profile?.role) || '/'
 
-  // Landlords manage their own listings and have no reason to browse the
+  // Landlords manage their own rooms and have no reason to browse the
   // marketplace the way a student does - hidden for landlords, visible
   // for guests, students, and admins.
   const showBrowseLink = profile?.role !== 'landlord' && (mode !== 'pre_launch' || profile?.role === 'admin')

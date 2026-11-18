@@ -29,7 +29,7 @@ export default function ContactLandlordButton({ propertyId, landlordId }) {
 
       // Multiple labeled numbers take priority when present; profiles
       // (the landlord's registration phone) is only fetched as a
-      // fallback for listings with zero property_contacts rows.
+      // fallback for rooms with zero property_contacts rows.
       const [{ data: contactRows, error: contactsError }, { data: profileRow, error: profileError }] =
         await Promise.all([
           supabase

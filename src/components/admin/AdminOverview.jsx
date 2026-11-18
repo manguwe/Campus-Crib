@@ -62,9 +62,9 @@ export default function AdminOverview() {
     { label: 'Students', value: stats.totalStudents },
     { label: 'Landlords', value: stats.totalLandlords },
     { label: 'Total properties', value: stats.totalProperties },
-    { label: 'Pending listings', value: stats.pendingProperties },
-    { label: 'Approved listings', value: stats.approvedProperties },
-    { label: 'Rejected listings', value: stats.rejectedProperties },
+    { label: 'Pending rooms', value: stats.pendingProperties },
+    { label: 'Approved rooms', value: stats.approvedProperties },
+    { label: 'Rejected rooms', value: stats.rejectedProperties },
     { label: 'Pending verifications', value: stats.pendingVerifications },
   ]
 

@@ -1,9 +1,9 @@
 import { AVAILABILITY_STATUS_OPTIONS, AVAILABILITY_STATUS_DOT_COLORS } from '../lib/constants'
 
-/** Segmented button group for picking a listing's availability status.
+/** Segmented button group for picking a room's availability status.
  * Used both as a full-size control in PropertyEditor and, with
  * `compact`, as a quick-edit pill group inline in a LandlordDashboard
- * listing row. */
+ * room row. */
 export default function AvailabilityStatusControl({ value, onChange, disabled = false, compact = false }) {
   return (
     <div

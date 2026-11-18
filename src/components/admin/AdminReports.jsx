@@ -36,7 +36,7 @@ export default function AdminReports() {
     load()
   }, [])
 
-  // Simple "N reports" signal for a repeatedly-reported listing -
+  // Simple "N reports" signal for a repeatedly-reported room -
   // counted from what's already loaded rather than a separate query.
   const countsByProperty = rows.reduce((acc, r) => {
     acc[r.property_id] = (acc[r.property_id] || 0) + 1
@@ -64,7 +64,7 @@ export default function AdminReports() {
     return (
       <EmptyState
         title="No reports yet"
-        description="Listings reported by students will show up here."
+        description="Rooms reported by students will show up here."
       />
     )
   }
@@ -81,7 +81,7 @@ export default function AdminReports() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-medium text-gray-900">
-                    {r.properties?.title || 'Listing no longer exists'}
+                    {r.properties?.title || 'Room no longer exists'}
                   </p>
                   <span
                     className={`px-2 py-0.5 rounded-full text-xs font-medium ${REPORT_STATUS_BADGE_STYLES[r.status]}`}
@@ -106,7 +106,7 @@ export default function AdminReports() {
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline mt-1"
                   >
-                    View listing
+                    View room
                     <ExternalLink size={11} />
                   </Link>
                 )}

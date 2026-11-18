@@ -67,7 +67,7 @@ export default function AdminLaunchReadiness() {
             ['Interest', referrals.interest || 0, referrals.visits || 0],
             ['Signups', referrals.signups || 0, referrals.users || referrals.visits || 0],
             ['Profiles', referrals.profiles || 0, referrals.signups || 0],
-            ['Listings', referrals.listings || 0, referrals.profiles || referrals.signups || 0],
+            ['Rooms', referrals.rooms || 0, referrals.profiles || referrals.signups || 0],
           ].map(([label, value, base]) => (
             <div key={label} className="rounded-xl bg-gray-50 p-3">
               <p className="text-xs text-gray-500">{label}</p>

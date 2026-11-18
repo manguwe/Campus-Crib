@@ -116,7 +116,7 @@ export default function SearchFilters({ filters, onChange }) {
           />
           {filters.maxDistanceKm && (
             <p className="text-xs text-gray-400 mt-1">
-              Listings without a map pin set are hidden while this filter is active.
+              Rooms without a map pin set are hidden while this filter is active.
             </p>
           )}
         </div>

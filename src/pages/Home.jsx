@@ -73,7 +73,7 @@ export default function Home() {
       {/* Hero */}
       <section className="text-center max-w-2xl mx-auto pt-4 animate-fade-in-up">
         <span className="inline-block text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-3 py-1 mb-4">
-          Verified listings near your campus
+          Verified rooms near your campus
         </span>
         <h1 className="text-3xl sm:text-4xl font-bold text-primary leading-tight">
           Find your next boarding house, without the guesswork
@@ -152,12 +152,12 @@ export default function Home() {
             {
               icon: ShieldCheck,
               title: 'Verified landlords',
-              text: 'Every landlord is ID-verified by an admin before their listings go live, cutting down on scams.',
+              text: 'Every landlord is ID-verified by an admin before their rooms go live, cutting down on scams.',
             },
             {
               icon: MapPin,
               title: 'Contact directly',
-              text: 'See the exact location on a map, then call or text the landlord straight from the listing.',
+              text: 'See the exact location on a map, then call or text the landlord straight from the room.',
             },
           ].map((item) => (
             <div key={item.title} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 text-center">
