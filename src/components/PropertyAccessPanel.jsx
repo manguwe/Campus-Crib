@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, LockKeyhole, MapPin, Phone, Upload, Clock3, ShieldCheck, MessageCircle } from 'lucide-react'
+import { CheckCircle2, LockKeyhole, MapPin, Phone, Upload, Clock3, ShieldCheck, MessageCircle, Smartphone } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import { formatSupabaseError } from '../lib/errorMessages'
 import { uploadPaymentProof, discardPrivateUpload } from '../lib/storage'
-import { fetchAgentFeeSettings } from '../lib/agentsProgram'
+import { fetchReservationPaymentNumbers } from '../lib/roomAccess'
 
 export default function PropertyAccessPanel({ property }) {
   const { user, role } = useAuth()
@@ -13,7 +13,7 @@ export default function PropertyAccessPanel({ property }) {
   const [feeCurrency, setFeeCurrency] = useState(property.agent_fee_currency || 'ZMW')
   const [request, setRequest] = useState(null)
   const [privateAccess, setPrivateAccess] = useState(null)
-  const [paymentInstructions, setPaymentInstructions] = useState('')
+  const [paymentNumbers, setPaymentNumbers] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [proof, setProof] = useState(null)
@@ -45,14 +45,17 @@ export default function PropertyAccessPanel({ property }) {
     setPrivateAccess(null)
 
     if (user?.id && role === 'student') {
-      const [accessResult, settingsResult] = await Promise.all([
+      const [accessResult, numbersResult] = await Promise.all([
         supabase.rpc('get_private_property_access', { p_property_id: property.id }),
-        fetchAgentFeeSettings().catch(() => null),
+        fetchReservationPaymentNumbers().catch((loadError) => {
+          setError(formatSupabaseError(loadError, 'Could not load the payment numbers.'))
+          return []
+        }),
       ])
       if (!accessResult.error && accessResult.data?.[0]) setPrivateAccess(accessResult.data[0])
-      setPaymentInstructions(settingsResult?.instructions || '')
+      setPaymentNumbers(numbersResult)
     } else {
-      setPaymentInstructions('')
+      setPaymentNumbers([])
     }
     setLoading(false)
   }
@@ -174,35 +177,49 @@ export default function PropertyAccessPanel({ property }) {
           <p className="text-sm text-gray-600 mt-1">Agent fee: <strong>{feeLabel}</strong>. The general area remains visible; phone and exact coordinates are released only after admin approval.</p>
         </div>
       </div>
-      {paymentInstructions && (
-        <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
-          <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Payment recipient and instructions</p>
-          <p className="mt-1 whitespace-pre-line break-words text-sm text-gray-700">{paymentInstructions}</p>
-        </div>
-      )}
+
+      <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-3">
+        <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-gray-500"><Smartphone size={14} /> Pay agent fee to</p>
+        {loading ? (
+          <p className="mt-2 text-sm text-gray-500">Loading payment numbers…</p>
+        ) : paymentNumbers.length > 0 ? (
+          <ul className="mt-2 divide-y divide-gray-200">
+            {paymentNumbers.map((number) => (
+              <li key={number.id} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2 text-sm first:pt-0 last:pb-0">
+                <span className="font-semibold text-gray-900">{number.network}</span>
+                <span className="font-mono font-semibold text-gray-800">{number.phone}</span>
+                {number.account_name && <span className="w-full text-xs text-gray-500">Account name: {number.account_name}</span>}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-amber-800">No active agent-fee payment numbers were found. Please contact Campus Crib support before paying; do not send money to an unconfirmed number.</p>
+        )}
+      </div>
+
       {loading ? (
-        <p className="mt-4 text-sm text-gray-500">Loading payment details…</p>
+        <p className="mt-4 text-sm text-gray-500">Checking your access status…</p>
       ) : request?.status === 'pending' ? (
         <div className="mt-4 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800"><Clock3 size={16} className="inline mr-1" /> Payment proof submitted. Waiting for admin verification.</div>
       ) : request?.status === 'rejected' ? (
         <div className="mt-4 space-y-3">
           <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">Payment proof was not approved{request.review_note ? `: ${request.review_note}` : '.'} Please submit a new proof.</div>
-          <PaymentForm proof={proof} setProof={setProof} onSubmit={submitProof} submitting={submitting} />
+          <PaymentForm proof={proof} setProof={setProof} onSubmit={submitProof} submitting={submitting} disabled={paymentNumbers.length === 0} />
         </div>
       ) : (
-        <PaymentForm proof={proof} setProof={setProof} onSubmit={submitProof} submitting={submitting} />
+        <PaymentForm proof={proof} setProof={setProof} onSubmit={submitProof} submitting={submitting} disabled={paymentNumbers.length === 0} />
       )}
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
     </div>
   )
 }
 
-function PaymentForm({ proof, setProof, onSubmit, submitting }) {
+function PaymentForm({ proof, setProof, onSubmit, submitting, disabled = false }) {
   return (
     <form onSubmit={onSubmit} className="mt-4 space-y-3">
       <label className="block text-sm font-semibold text-gray-700">Upload proof of payment</label>
       <input type="file" accept="image/*,.pdf" onChange={(event) => setProof(event.target.files?.[0] || null)} className="block w-full text-sm" />
-      <button disabled={submitting} className="inline-flex items-center gap-2 rounded-xl bg-accent text-white px-4 py-2.5 text-sm font-bold disabled:opacity-60">
+      <button disabled={submitting || disabled} className="inline-flex items-center gap-2 rounded-xl bg-accent text-white px-4 py-2.5 text-sm font-bold disabled:opacity-60">
         <Upload size={16} /> {submitting ? 'Submitting…' : 'Submit payment proof'}
       </button>
     </form>
