@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom'
-import { Heart, Navigation } from 'lucide-react'
+import { Heart } from 'lucide-react'
 import { buildingTypeLabel, propertySummaryParts } from '../lib/propertyDisplay'
 import { formatDistanceKm } from '../lib/distance'
 import { getAmenityIcon, getAmenityLabel } from '../lib/amenityIcons'
-import { directionsUrl } from '../lib/googleMaps'
 import { useCampuses } from '../context/CampusesContext'
 import RatingSummary from './RatingSummary'
 import AvailabilityStatusBadge from './AvailabilityStatusBadge'
@@ -33,13 +32,6 @@ export default function PropertyCard({
     e.preventDefault()
     e.stopPropagation()
     onToggleFavourite?.(property.id)
-  }
-
-  function handleDirectionsClick(e) {
-    // Card is wrapped in a Link - stop the click from also triggering
-    // navigation to the detail page while still letting the anchor's
-    // own href open Google Maps in a new tab.
-    e.stopPropagation()
   }
 
   return (
@@ -96,22 +88,8 @@ export default function PropertyCard({
               {distanceLabel}
             </span>
           )}
-          {property.public_latitude != null && property.public_longitude != null && (
-            <a
-              href={directionsUrl(property.public_latitude, property.public_longitude)}
-              target="_blank"
-              rel="noreferrer"
-              onClick={handleDirectionsClick}
-              className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700"
-            >
-              <Navigation size={11} />
-              Get directions
-            </a>
-          )}
         </div>
 
-        {/* Price is the primary visual anchor of the card - title and
-            details are deliberately secondary/muted below it. */}
         <p className="text-lg font-bold text-primary leading-tight">
           {property.currency} {Number(property.price).toLocaleString()}
           <span className="text-xs font-normal text-gray-400"> / month</span>
